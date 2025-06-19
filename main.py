@@ -7,6 +7,8 @@ from dotenv import load_dotenv
 import os
 
 from sheet_processer import process_sheet
+from sheet_loader import load_sheet, get_urls
+from pagespeed import analyze_url
 
 load_dotenv()  # Load variables from .env
 
@@ -20,9 +22,6 @@ if not PAGE_SPEED_API_KEY:
 PAGE_SPEED_API_ENDPOINT = os.getenv("PAGE_SPEED_API_ENDPOINT")
 if not PAGE_SPEED_API_ENDPOINT:
     raise ValueError("PAGE_SPEED_API_ENDPOINT environment variable is not set. Please set it in your .env file.")
-
-from sheet_loader import load_sheet, get_urls
-from pagespeed import analyze_url
 
 # Replace with your actual Google API key
 
@@ -47,7 +46,7 @@ async def load_sheet_form_before(request: Request):
 @app.post("/load-sheet-before", response_class=HTMLResponse)
 async def load_sheet_post_before(request: Request, sheet_id: str = Form(...)):
     global debug
-    debug = f"Loading Post. Sheet ID: {sheet_id}\n"
+    debug = f"Loading Sheet Before. Sheet ID: {sheet_id}\n"
     if not sheet_id:
         return templates.TemplateResponse("load_sheet.html", {
             "request": request,
@@ -58,13 +57,19 @@ async def load_sheet_post_before(request: Request, sheet_id: str = Form(...)):
         if not sheet_id.strip():
             raise ValueError("Sheet ID cannot be empty.")
         
-        urls_to_analyze = get_urls(sheet_id)
+        debug += f"Received Sheet ID: {sheet_id}\n"
+        result = get_urls(sheet_id)
+
+        debug += f"URLs to analyze: {result.get('urls', [])}\n"
+        urls_to_analyze = result.get('urls', [])
+        debug += result.get('debug', '')
 
         if not urls_to_analyze:
             debug += "No URLs found to analyze.\n"
             raise
 
-        load_return = load_sheet(sheet_id)
+        load_return = load_sheet(sheet_id, urls_to_analyze)
+        debug += load_return.get('debug', '')
 
         if "error" in load_return:
             debug += f"{load_return['debug']}\n"
@@ -74,7 +79,7 @@ async def load_sheet_post_before(request: Request, sheet_id: str = Form(...)):
         if not load_return['data_rows']:
             debug += "No data found in the sheet. Please check the sheet ID and try again."
             raise
-        
+
         debug += f"Sheet data loaded successfully.\n"
 
         debug += f"Processing sheet data for stage 'before'.\n"
