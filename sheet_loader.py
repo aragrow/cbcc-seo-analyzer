@@ -1,5 +1,15 @@
 import pandas as pd
 import gspread
+from gspread_dataframe import set_with_dataframe
+from gspread_formatting import (
+    get_conditional_format_rules,
+    ConditionalFormatRule,
+    BooleanRule,
+    BooleanCondition,
+    CellFormat,
+    Color,
+    GridRange
+)
 import traceback
 from google.oauth2.service_account import Credentials
 from fastapi.templating import Jinja2Templates
@@ -10,7 +20,9 @@ from check_inpage_urls import check_inpage_urls
 templates = Jinja2Templates(directory="templates")
 
 # Define the scopes and credentials path
-SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
+SCOPES_READONLY = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
+SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
+
 SERVICE_ACCOUNT_FILE = "credentials/google_service_account.json"
 
 def get_urls(sheet_id: str) -> dict:
@@ -112,25 +124,21 @@ def load_sheet(sheet_id: str, urls_to_analyze = []) -> dict:
             
         debug += f"Spreadsheet '{spreadsheet.title}' loaded successfully.\n"
 
-        sheet_data = {}
-
         # Loop through all tabs/worksheets
         for worksheet in spreadsheet.worksheets():
             title = worksheet.title
             if title == "Site Speed & Asset Optimization":
                 result = load_site_speed_asset_optimization(worksheet, urls_to_analyze)
-                sheet_data[title] = result.get("sheet_data", {})
                 debug += result.get("debug", "")
 
             if title == "Bad Links":
                 result = load_bad_links(worksheet, urls_to_analyze)
-                sheet_data[title] = result.get("sheet_data", {})
                 debug += result.get("debug", "")
             # End if
 
         # End for loop
 
-        return {"sheet_data": sheet_data, "debug": debug}
+        return {"debug": debug}
 
     except Exception as e:
          return {"error": str(e), "debug": debug}
@@ -212,7 +220,6 @@ def load_bad_links(worksheet, urls_to_analyze) -> dict:
         # Skip the first two rows if they are headers
         data_rows = all_rows[1:]  # Row indices start at 0
 
-        print(f"Data Rows: {data_rows[:5]}...")
         # Extract just the first column (URL column), assuming it's in column A
         #urls = [row[0].strip() for row in data_rows if len(row) > 0 and row[0].strip()]
 
@@ -232,40 +239,93 @@ def load_bad_links(worksheet, urls_to_analyze) -> dict:
                         base_url = "https://" + base_url
                         print(f"Base URL set to: {base_url}")
 
- 
                     url = base_url
                 else:
-                    url = base_url + url
+                    url = base_url + '/' + url
                 
-                print(f"Checking URL: {url}")     
-                exit      
+                #print(f"Checking URL: {url}")           
                 result = check_inpage_urls(url)
+
                 results.append(result)
-                debug += result.get("debug", "")
 
             except Exception as e:
                 results.append({"url": url, "error": str(e)})
         
-        debug += f"\nChecked {len(urls_to_analyze)} URLs with check_inpage_urls.\n"
+        # End for loop
+        # print(results)
+        try:
+            
+            # ✅ Flatten the nested list
+            flat_data = [item for sublist in results for item in sublist]
 
+            # Convert to DataFrame
+            #df = pd.DataFrame(urls, columns=["Page URL"])
+            headers = ["page_url", "audit_date", "in_page_url", "status_code", "tag"]
+            df = pd.DataFrame(flat_data, columns=headers)
 
-        # Convert to DataFrame
-        #df = pd.DataFrame(urls, columns=["Page URL"])
-        df = pd.DataFrame(data_rows, columns=header)
+            # Clear existing data
+            worksheet.clear()
 
-        debug += f"DataFrame created for '{title}', shape: {df.shape}"
+            set_with_dataframe(worksheet, df, row=1, col=1, include_column_header=True)
 
-        # Store in dict
-        sheet_data = df
+            apply_bad_links_formatting(worksheet)
 
-        debug += f"Tab '{title}' loaded successfully with {len(df)} URLs.\n"
+            print("✅ Data written successfully.")
+            
+        except Exception as e:
+            print("❌ Error writing to Google Sheet:", e)
+        # Write the DataFrame to the worksheet
+        
 
-        return {"sheet_data": sheet_data, "debug": debug}
+        debug += "Google Sheet updated successfully."
+
+        return {"status": "success", "debug": debug}
 
     except Exception as e:
         return {"error": str(e), "debug": debug}
     
 # End load_bad_links
 
+def apply_bad_links_formatting(worksheet) :
+
+    debug = "Applying Bad Links Formating"
+    try: 
+        # Define formatting rules
+        range_d = GridRange.from_a1_range('D1:D', worksheet)
+
+        rule_green = ConditionalFormatRule(
+            ranges=[range_d],
+            booleanRule=BooleanRule(
+                condition=BooleanCondition('NUMBER_EQ', ['200']),
+                format=CellFormat(backgroundColor=Color(0.8, 1, 0.8))
+            )
+        )
+
+        rule_yellow = ConditionalFormatRule(
+            ranges=[range_d],
+            booleanRule=BooleanRule(
+                condition=BooleanCondition('NUMBER_EQ', ['301']),
+                format=CellFormat(backgroundColor=Color(1, 1, 0.6))
+            )
+        )
+
+        rule_red = ConditionalFormatRule(
+            ranges=[range_d],
+            booleanRule=BooleanRule(
+                condition=BooleanCondition('CUSTOM_FORMULA', ['=AND(ISNUMBER(D1), D1<>200, D1<>301)']),
+                format=CellFormat(backgroundColor=Color(1, 0.8, 0.8))
+            )
+        )
+
+        # Apply rules
+        rules = get_conditional_format_rules(worksheet)
+        rules.clear()
+        rules.extend([rule_green, rule_yellow, rule_red])
+        rules.save()
+
+        return {"debug": debug}
+    
     # End try-except
+    except Exception as e:
+        return {"error": str(e), "debug": debug}
 
