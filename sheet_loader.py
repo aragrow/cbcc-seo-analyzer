@@ -15,6 +15,7 @@ from google.oauth2.service_account import Credentials
 from fastapi.templating import Jinja2Templates
 
 from check_inpage_urls import check_inpage_urls
+from pagespeed import analyze_url, analyze_both
 
 # Templates
 templates = Jinja2Templates(directory="templates")
@@ -26,7 +27,7 @@ SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 SERVICE_ACCOUNT_FILE = "credentials/google_service_account.json"
 
 def get_urls(sheet_id: str) -> dict:
-   
+
     """
     Loads all tabs in the Google Sheet into a dictionary of pandas DataFrames.
     Includes debug output to confirm correct data types.
@@ -78,7 +79,14 @@ def get_urls(sheet_id: str) -> dict:
             debug += f"\n📄 Data Rows: {data_rows[:5]}..."
 
             # Extract just the first column (URL column), assuming it's in column A
-            urls = [row[0].strip() for row in data_rows if len(row) > 0 and row[0].strip()]
+            urls = [
+                {
+                    "url": row[0].strip(),
+                    "completed": str(row[13]).strip().lower() == "true"
+                }
+                for row in data_rows
+                if len(row) > 13 and row[0].strip()
+            ]
     
             debug += f"\n📄 Extracted URLs: {urls}..."
 
@@ -90,7 +98,7 @@ def get_urls(sheet_id: str) -> dict:
         return {"urls": urls, "debug": debug}
 
     except Exception as e:
-         return {"error": str(e), "debug": debug}
+        return {"error": str(e), "debug": debug}
 
 def load_sheet(sheet_id: str, urls_to_analyze = []) -> dict:
     """
@@ -132,7 +140,7 @@ def load_sheet(sheet_id: str, urls_to_analyze = []) -> dict:
                 debug += result.get("debug", "")
 
             if title == "Bad Links":
-                result = load_bad_links(worksheet, urls_to_analyze)
+             #   result = load_bad_links(worksheet, urls_to_analyze)
                 debug += result.get("debug", "")
             # End if
 
@@ -141,7 +149,7 @@ def load_sheet(sheet_id: str, urls_to_analyze = []) -> dict:
         return {"debug": debug}
 
     except Exception as e:
-         return {"error": str(e), "debug": debug}
+        return {"error": str(e), "debug": debug}
 
 def load_site_speed_asset_optimization(worksheet, urls_to_analyze) -> dict:
     """
@@ -177,8 +185,36 @@ def load_site_speed_asset_optimization(worksheet, urls_to_analyze) -> dict:
 
         # Skip the first two rows if they are headers
         data_rows = all_rows[2:]  # Row indices start at 0
+        results = []
+        base_url = ""  # Replace with your base URL if needed
+        for url_info in urls_to_analyze:
+            url, completed = url_info["url"], url_info["completed"]
+            try:
+                if base_url == "":
+                    # Extract base URL from the first URL in the list
+                    base_url = url
+                    print(f"Base URL set to: {base_url}")
+                    if base_url.startswith("http://"):
+                        base_url = base_url.replace("http://", "https://")
+                        print(f"Base URL set to: {base_url}")
+                    elif not base_url.startswith("https://"):
+                        base_url = "https://" + base_url
+                        print(f"Base URL set to: {base_url}")
 
-        debug += f"\nData Rows: {data_rows[:5]}..."
+                    url = base_url
+                else:
+                    url = base_url + '/' + url
+                
+                #print(f"Checking URL: {url}")           
+                result = analyze_both(url, completed)
+
+                results.append(result)
+
+            except Exception as e:
+                results.append({"url": url, "error": str(e)})
+        
+        print(results)
+
         # Extract just the first column (URL column), assuming it's in column A
         #urls = [row[0].strip() for row in data_rows if len(row) > 0 and row[0].strip()]
 
@@ -188,12 +224,31 @@ def load_site_speed_asset_optimization(worksheet, urls_to_analyze) -> dict:
 
         debug += f"\nDataFrame created for '{title}', shape: {df.shape}"
 
-        # Store in dict
-        sheet_data = df
+        try:
+            
+            # ✅ Flatten the nested list
+            flat_data = [item for sublist in results for item in sublist]
 
-        debug += f"\nTab '{title}' loaded successfully with {len(df)} URLs.\n"
+            # Convert to DataFrame
 
-        return {"sheet_data": sheet_data, "debug": debug}
+            df = pd.DataFrame(flat_data, columns=combined_headers)
+
+            # Clear existing data
+            worksheet.clear(["A3:Z"])
+
+           # set_with_dataframe(worksheet, df, row=3, col=1, include_column_header=False)
+
+           # apply_asset_optimization_formatting(worksheet)
+
+            print("✅ Data written successfully.")
+            
+        except Exception as e:
+            print("❌ Error writing to Google Sheet:", e)
+        # Write the DataFrame to the worksheet
+        
+
+        debug += "Google Sheet updated successfully."
+
 
     except Exception as e:
         return {"error": str(e), "debug": debug}
@@ -329,3 +384,47 @@ def apply_bad_links_formatting(worksheet) :
     except Exception as e:
         return {"error": str(e), "debug": debug}
 
+def apply_asset_optimization_formatting(worksheet) :
+
+    debug = "Applying Bad Links Formating"
+    try: 
+
+        # Define ranges
+        range_1 = GridRange.from_a1_range('C2:L', worksheet)
+        range_2 = GridRange.from_a1_range('O2:X', worksheet)
+
+        rule_green = ConditionalFormatRule(
+            ranges=[range_1, range_2],
+            booleanRule=BooleanRule(
+                condition=BooleanCondition('NUMBER_BETWEEN', ['90', '100']),
+                format=CellFormat(backgroundColor=Color(0.8, 1, 0.8))
+            )
+        )
+
+        rule_yellow = ConditionalFormatRule(
+            ranges=[range_1, range_2],
+            booleanRule=BooleanRule(
+                condition=BooleanCondition('NUMBER_BETWEEN', ['50', '89']),
+                format=CellFormat(backgroundColor=Color(1, 1, 0.6))
+            )
+        )
+
+        rule_red = ConditionalFormatRule(
+            ranges=[range_1, range_2],
+              booleanRule=BooleanRule(
+                condition=BooleanCondition('NUMBER_BETWEEN', ['0', '49']),
+                format=CellFormat(backgroundColor=Color(1, 0.8, 0.8))
+            )
+        )
+
+        # Apply rules
+        rules = get_conditional_format_rules(worksheet)
+        rules.clear()
+        rules.extend([rule_green, rule_yellow, rule_red])
+        rules.save()
+
+        return {"debug": debug}
+    
+    # End try-except
+    except Exception as e:
+        return {"error": str(e), "debug": debug}

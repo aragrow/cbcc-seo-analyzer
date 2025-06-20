@@ -37,7 +37,7 @@ def check_inpage_urls(page_url):
             x = 0
             for element in soup.find_all(tag):
                 x += 1
-                if x > 5:
+                if x > 100:
                     print(f"Reached limit of 5 URLs for tag: {tag}")
                     break
               
