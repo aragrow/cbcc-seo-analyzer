@@ -13,9 +13,11 @@ from gspread_formatting import (
 import traceback
 from google.oauth2.service_account import Credentials
 from fastapi.templating import Jinja2Templates
+from datetime import datetime
 
 from check_inpage_urls import check_inpage_urls
 from pagespeed import analyze_url, analyze_both
+from seo_report import generate_seo_report
 
 # Templates
 templates = Jinja2Templates(directory="templates")
@@ -100,7 +102,7 @@ def get_urls(sheet_id: str) -> dict:
     except Exception as e:
         return {"error": str(e), "debug": debug}
 
-def load_sheet(sheet_id: str, urls_to_analyze = []) -> dict:
+def load_sheet(sheet_id: str, urls_to_analyze = [], client_name = '') -> dict:
     """
     Loads all tabs in the Google Sheet into a dictionary of pandas DataFrames.
     Includes debug output to confirm correct data types.
@@ -136,7 +138,7 @@ def load_sheet(sheet_id: str, urls_to_analyze = []) -> dict:
         for worksheet in spreadsheet.worksheets():
             title = worksheet.title
             if title == "Site Speed & Asset Optimization":
-                result = load_site_speed_asset_optimization(worksheet, urls_to_analyze)
+                result = load_site_speed_asset_optimization(worksheet, urls_to_analyze, client_name)
                 debug += result.get("debug", "")
 
             if title == "Bad Links":
@@ -151,7 +153,7 @@ def load_sheet(sheet_id: str, urls_to_analyze = []) -> dict:
     except Exception as e:
         return {"error": str(e), "debug": debug}
 
-def load_site_speed_asset_optimization(worksheet, urls_to_analyze) -> dict:
+def load_site_speed_asset_optimization(worksheet, urls_to_analyze, client_name) -> dict:
     """
     Analyze site speed optimization sheet.
     Returns a summary string of processed data.
@@ -185,7 +187,7 @@ def load_site_speed_asset_optimization(worksheet, urls_to_analyze) -> dict:
 
         # Skip the first two rows if they are headers
         data_rows = all_rows[2:]  # Row indices start at 0
-        results = []
+        insights_data = []
         base_url = ""  # Replace with your base URL if needed
         for url_info in urls_to_analyze:
             url, completed = url_info["url"], url_info["completed"]
@@ -207,13 +209,22 @@ def load_site_speed_asset_optimization(worksheet, urls_to_analyze) -> dict:
                 
                 #print(f"Checking URL: {url}")           
                 result = analyze_both(url, completed)
+                if not result:
+                    debug += f"\nNo result returned from analyze_both for URL: {url}"
+                    raise ValueError(f"No result returned from analyze_both for URL: {url}")
 
-                results.append(result)
+             #   generated_report = generate_seo_report(result, client_name, url)
+
+             #   if not generated_report:
+             #       debug += "No SEO Report Generated."
+             #       raise ValueError("No SEO Report Generated.")
+
+                insights_data.append(result)
 
             except Exception as e:
-                results.append({"url": url, "error": str(e)})
+                insights_data.append({"url": url, "error": str(e)})
         
-        print(results)
+        print(insights_data)
 
         # Extract just the first column (URL column), assuming it's in column A
         #urls = [row[0].strip() for row in data_rows if len(row) > 0 and row[0].strip()]
@@ -225,25 +236,76 @@ def load_site_speed_asset_optimization(worksheet, urls_to_analyze) -> dict:
         debug += f"\nDataFrame created for '{title}', shape: {df.shape}"
 
         try:
-            
-            # ✅ Flatten the nested list
-            flat_data = [item for sublist in results for item in sublist]
 
-            # Convert to DataFrame
+            # === Step 2: Prepare DataFrame ===
+            records = []
+            today = datetime.today().strftime('%m/%d/%Y')
 
-            df = pd.DataFrame(flat_data, columns=combined_headers)
+            for entry in insights_data:
+                url = entry.get('url')
 
-            # Clear existing data
-            worksheet.clear(["A3:Z"])
+                before_mobile = entry.get('before_mobile', {})
+                before_desktop = entry.get('before_desktop', {})
+                after_mobile = entry.get('after_mobile', {})
+                after_desktop = entry.get('after_desktop', {})
 
-           # set_with_dataframe(worksheet, df, row=3, col=1, include_column_header=False)
+                if before_mobile and before_desktop:
+
+                    record = {
+                        "Date Reviewed": today,
+                        "Performance (before)": before_mobile.get('performance', None),
+                        "Accessibility (before)": before_mobile.get('accessibility', None),
+                        "Best Practices (before)": before_mobile.get('best_practices', None),
+                        "SEO (before)": before_mobile.get('seo', None),
+                        "Performance (before)_D": before_desktop.get('performance', None),
+                        "Accessibility (before)_D": before_desktop.get('accessibility', None),
+                        "Best Practices (before)_D": before_desktop.get('best_practices', None),
+                        "SEO (before)_D": before_desktop.get('seo', None),
+                        "Recomendations": "See opportunities in PageSpeed report",
+                        "Completed": 1
+                    }
+
+                    records.append(record)
+
+                    df = pd.DataFrame(records)
+
+                    # Clear existing data
+                    worksheet.batch_clear(["B3:L"])
+
+                    set_with_dataframe(worksheet, df, row=3, col=1, include_column_header=False)
+
+                else: 
+
+                    record = {
+                        "Date Reviewed": today,
+                        "Performance (after)": after_mobile.get('performance', None),
+                        "Accessibility (after)": after_mobile.get('accessibility', None),
+                        "Best Practices (after)": after_mobile.get('best_practices', None),
+                        "SEO (after)": after_mobile.get('seo', None),
+                        "Performance (after)_D": after_desktop.get('performance', None),
+                        "Accessibility (after)_D": after_desktop.get('accessibility', None),
+                        "Best Practices (after)_D": after_desktop.get('best_practices', None),
+                        "SEO (after)_D": after_desktop.get('seo', None),
+                        "Recomendations": "See opportunities in PageSpeed report"
+                    }
+
+                    records.append(record)
+
+                    df = pd.DataFrame(records)
+
+                    # Clear existing data
+                    worksheet.batch_clear(["O3:Z"])
+
+                    set_with_dataframe(worksheet, df, row=3, col=15, include_column_header=False)
 
            # apply_asset_optimization_formatting(worksheet)
 
             print("✅ Data written successfully.")
             
         except Exception as e:
-            print("❌ Error writing to Google Sheet:", e)
+            print("Error writing to Google Sheet:", e)
+            debug += f'Error writing to Google Sheet: {e}'
+            return {"error": str(e), "debug": debug}
         # Write the DataFrame to the worksheet
         
 
@@ -310,7 +372,7 @@ def load_bad_links(worksheet, urls_to_analyze) -> dict:
         # print(results)
         try:
             
-            # ✅ Flatten the nested list
+            # Flatten the nested list
             flat_data = [item for sublist in results for item in sublist]
 
             # Convert to DataFrame
@@ -325,10 +387,10 @@ def load_bad_links(worksheet, urls_to_analyze) -> dict:
 
             apply_bad_links_formatting(worksheet)
 
-            print("✅ Data written successfully.")
+            print("Data written successfully.")
             
         except Exception as e:
-            print("❌ Error writing to Google Sheet:", e)
+            print("Error writing to Google Sheet:", e)
         # Write the DataFrame to the worksheet
         
 
