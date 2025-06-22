@@ -16,7 +16,7 @@ from fastapi.templating import Jinja2Templates
 from datetime import datetime
 
 from check_inpage_urls import check_inpage_urls
-from pagespeed import analyze_url, analyze_both
+from pagespeed import analyze_both
 from seo_report import generate_seo_report
 
 # Templates
@@ -35,8 +35,8 @@ def get_urls(sheet_id: str) -> dict:
     Includes debug output to confirm correct data types.
     """
     try:
-        print('Getting URLs')
-        debug = f"Getting URL from load_sheet for sheet_id: {sheet_id}\n"        
+        debug = ''
+        print(f"Getting URL from load_sheet for sheet_id: {sheet_id}\n")        
         # Authenticate and connect to Google Sheets
         try:
             creds = Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=SCOPES)
@@ -59,27 +59,18 @@ def get_urls(sheet_id: str) -> dict:
             debug += f"Error opening spreadsheet: {traceback.format_exc()}\n"
             raise
             
-        debug += f"Spreadsheet '{spreadsheet.title}' loaded successfully.\n"
-
-        sheet_data = {}
+        print("Spreadsheet '{spreadsheet.title}' loaded successfully.\n")
 
         # Loop through all tabs/worksheets
         for worksheet in spreadsheet.worksheets():
             title = worksheet.title
-            if title != "Site Speed & Asset Optimization":
-                debug += f"Skipping tab: {title}\n"
-                continue
-            # End if
-
-            print(f"📄 Loading tab: {title}")
-            debug += f"📄 Loading tab: {title}"
+            if title != "Site Speed & Asset Optimization": continue
 
             # Get all values from the worksheet as raw rows (lists of lists)
             all_rows = worksheet.get_all_values()
 
             # Skip the first two rows if they are headers
             data_rows = all_rows[2:]  # Row indices start at 0
-          #  debug += f"\n📄 Data Rows: {data_rows[:5]}..."
 
             start_row_index = 3  # This is the actual Google Sheet row number where data starts (after skipping headers)
 
@@ -94,8 +85,8 @@ def get_urls(sheet_id: str) -> dict:
                 for i, row in enumerate(data_rows)            # <-- FIXED: you need `enumerate()` here
                 if len(row) > 24 and row[0].strip()           # Only include rows with enough columns and a non-empty URL
             ]
-         
-         # End for loop
+        
+        # End for loop
 
         if not urls:
             debug += "No URLs found in the worksheet.\n"
@@ -145,7 +136,7 @@ def load_sheet(sheet_id: str, urls_to_analyze = [], client_name = '') -> dict:
                 debug += result.get("debug", "")
 
             if title == "Bad Links":
-             #   result = load_bad_links(worksheet, urls_to_analyze)
+            #   result = load_bad_links(worksheet, urls_to_analyze)
                 debug += result.get("debug", "")
             # End if
 
@@ -193,15 +184,18 @@ def load_site_speed_asset_optimization(worksheet, urls_to_analyze, client_name) 
                 if(before_completed == 'TRUE' and after_completed == 'TRUE'): continue  
 
                 result = analyze_both(url, before_completed, row_no)
+
                 if not result:
                     debug += f"\nNo result returned from analyze_both for URL: {url}"
                     raise ValueError(f"No result returned from analyze_both for URL: {url}")
 
-            #   generated_report = generate_seo_report(result, client_name, url)
+                report = generate_seo_report(result, client_name, url)
 
-            #   if not generated_report:
-            #       debug += "No SEO Report Generated."
-            #       raise ValueError("No SEO Report Generated.")
+                if not report:
+                    raise ValueError("No SEO Report Generated.")
+
+                # Add the report afterward
+                result["report"] = report
 
                 insights_data.append(result)
 
@@ -218,7 +212,7 @@ def load_site_speed_asset_optimization(worksheet, urls_to_analyze, client_name) 
 
             for entry in insights_data:
                 url = entry.get('url')
-              
+                report = entry.get('report')
                 before_mobile = entry.get('before_mobile', {})
                 before_desktop = entry.get('before_desktop', {})
                 after_mobile = entry.get('after_mobile', {})
@@ -226,7 +220,7 @@ def load_site_speed_asset_optimization(worksheet, urls_to_analyze, client_name) 
 
                 row_no = before_mobile.get('row_no') or after_mobile.get('row_no')
                 if not row_no:
-                    print(f"❌ Skipping {url} — missing row number")
+                    print(f"Skipping {url} — missing row number")
                     continue
 
                 if before_mobile and before_desktop:
@@ -238,18 +232,18 @@ def load_site_speed_asset_optimization(worksheet, urls_to_analyze, client_name) 
                         "Accessibility (before)": before_mobile.get('accessibility', None),
                         "Best Practices (before)": before_mobile.get('best_practices', None),
                         "SEO (before)": before_mobile.get('seo', None),
-                         "Performance (before)_D": before_desktop.get('performance', None),
+                        "Performance (before)_D": before_desktop.get('performance', None),
                         "Accessibility (before)_D": before_desktop.get('accessibility', None),
                         "Best Practices (before)_D": before_desktop.get('best_practices', None),
                         "SEO (before)_D": before_desktop.get('seo', None),
-                        "Recomendations": "See opportunities in PageSpeed report",
+                        "Recomendations": report,
                         "Completed": True
                     }
 
                     #records.append(record)
 
                     df = pd.DataFrame([record])
-                    range = [f"B{row_no}:N{row_no}"]
+                    range = [f"B{row_no}:M{row_no}"]
                     print(f"Range: {range}")
                     # Clear existing data
                     worksheet.batch_clear(range)
@@ -260,7 +254,7 @@ def load_site_speed_asset_optimization(worksheet, urls_to_analyze, client_name) 
 
                     record = {
                         "Date Reviewed": today,
-                        "Core Web Vital Assestment (after)": after_mobile.get('perpass_fail_statusformance', None),
+                        "Core Web Vital Assestment (after)": after_mobile.get('pass_fail_status', None),
                         "Performance (after)": after_mobile.get('performance', None),
                         "Accessibility (after)": after_mobile.get('accessibility', None),
                         "Best Practices (after)": after_mobile.get('best_practices', None),
@@ -269,13 +263,12 @@ def load_site_speed_asset_optimization(worksheet, urls_to_analyze, client_name) 
                         "Accessibility (after)_D": after_desktop.get('accessibility', None),
                         "Best Practices (after)_D": after_desktop.get('best_practices', None),
                         "SEO (after)_D": after_desktop.get('seo', None),
-                        "Recomendations": "See opportunities in PageSpeed report"
+                        "Recomendations": report,
+                        "Completed": True
                     }
 
-                    #records.append(record)
-
                     df = pd.DataFrame([record])
-                    range = [f"B{row_no}:N{row_no}"]
+                    range = [f"N{row_no}:Y{row_no}"]
                     print(f"Range: {range}")
                     # Clear existing data
                     worksheet.batch_clear(range)
@@ -283,9 +276,7 @@ def load_site_speed_asset_optimization(worksheet, urls_to_analyze, client_name) 
                     set_with_dataframe(worksheet, df, row=row_no, col=14, include_column_header=False)
 
             apply_asset_optimization_formatting(worksheet)
-
-            print("✅ Data written successfully.")
-            
+  
         except Exception as e:
             print("Error writing to Google Sheet:", e)
             debug += f'Error writing to Google Sheet: {e}'
@@ -293,7 +284,7 @@ def load_site_speed_asset_optimization(worksheet, urls_to_analyze, client_name) 
         # Write the DataFrame to the worksheet
         
 
-        debug += "Google Sheet updated successfully."
+        print("Google Sheet updated successfully.")
 
 
     except Exception as e:
@@ -311,10 +302,7 @@ def load_bad_links(worksheet, urls_to_analyze) -> dict:
         debug = f"Executing load_bad_links for worksheet: {worksheet.title}\n"
         title = worksheet.title
         debug += f"📄 Loading tab: {title}"
-        sheet_data = {}
-
-        header = worksheet.row_values(1)
-
+       
         # Get all values from the worksheet as raw rows (lists of lists)
         all_rows = worksheet.get_all_values()
 
@@ -370,15 +358,13 @@ def load_bad_links(worksheet, urls_to_analyze) -> dict:
             set_with_dataframe(worksheet, df, row=1, col=1, include_column_header=True)
 
             apply_bad_links_formatting(worksheet)
-
-            print("Data written successfully.")
-            
+                    
         except Exception as e:
             print("Error writing to Google Sheet:", e)
         # Write the DataFrame to the worksheet
         
 
-        debug += "Google Sheet updated successfully."
+        print("Google Sheet updated successfully.")
 
         return {"status": "success", "debug": debug}
 

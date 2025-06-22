@@ -39,7 +39,6 @@ async def load_sheet_form(request: Request):
 
 @app.post("/load-sheet", response_class=HTMLResponse)
 async def load_sheet_post(request: Request, sheet_id: str = Form(...)):
-    global debug
     global client_name
     debug = f"Loading Sheet. Sheet ID: {sheet_id}\n"
     if not sheet_id:
@@ -50,42 +49,28 @@ async def load_sheet_post(request: Request, sheet_id: str = Form(...)):
     # Load the sheet data
     try:
         if not sheet_id.strip():
+            debug += "Sheet Id cannot be empty"
             raise ValueError("Sheet ID cannot be empty.")
         
-        debug += f"Received Sheet ID: {sheet_id}\n"
         result = get_urls(sheet_id)
 
-        debug += f"URLs to analyze: {result.get('urls', [])}\n"
+        print(f"URLs to analyze: {result.get('urls', [])}\n")
         urls_to_analyze = result.get('urls', [])
         debug += result.get('debug', '')
 
         if not urls_to_analyze:
-            debug += "No URLs found to analyze.\n"
-            raise
+            raise ValueError("No URLs found to analyze.")
 
         load_return = load_sheet(sheet_id, urls_to_analyze, client_name)
-        debug += load_return.get('debug', '')
 
         if "error" in load_return:
-            debug += f"{load_return['debug']}\n"
-            debug += f"Error loading sheet: {load_return['error']}\n"
-            raise 
+            raise ValueError(f"{load_return['debug']}\n")
+       
         
         if not load_return['data_rows']:
-            debug += "No data found in the sheet. Please check the sheet ID and try again."
-            raise
+            raise ValueError("No data found in the sheet. Please check the sheet ID and try again.\n")
 
-        debug += f"Sheet data loaded successfully.\n"
-
-        debug += f"Processing sheet data for stage 'before'.\n"
-        
-      #  process_result = process_sheet(urls_to_analyze, load_return['data_rows'], 'before', client_name)
-
-      #  if not process_result:
-      #      debug += "No valid data found in the sheet. Please check the sheet contents."   
-      #      raise ValueError("No valid data found in the sheet. Please check the sheet contents.")
-        
-        debug += f"Sheet data for stage 'before' Processed.\n"
+        print("Sheet data loaded successfully.\n")
             
         return templates.TemplateResponse("sheet_result.html", {
             "request": request,
