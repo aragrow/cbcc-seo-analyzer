@@ -35,8 +35,8 @@ def get_urls(sheet_id: str) -> dict:
     Includes debug output to confirm correct data types.
     """
     try:
-        debug = ''
-        print(f"Getting URL from load_sheet for sheet_id: {sheet_id}\n")        
+
+        debug = f"Getting URL from load_sheet for sheet_id: {sheet_id}\n"        
         # Authenticate and connect to Google Sheets
         try:
             creds = Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=SCOPES)
@@ -64,13 +64,19 @@ def get_urls(sheet_id: str) -> dict:
         # Loop through all tabs/worksheets
         for worksheet in spreadsheet.worksheets():
             title = worksheet.title
-            if title != "Site Speed & Asset Optimization": continue
+            if title != "Site Speed & Asset Optimization":
+                debug += f"Skipping tab: {title}\n"
+                continue
+            # End if
+
+            debug += f"📄 Loading tab: {title}"
 
             # Get all values from the worksheet as raw rows (lists of lists)
             all_rows = worksheet.get_all_values()
 
             # Skip the first two rows if they are headers
             data_rows = all_rows[2:]  # Row indices start at 0
+            #debug += f"\n📄 Data Rows: {data_rows[:5]}..."
 
             start_row_index = 3  # This is the actual Google Sheet row number where data starts (after skipping headers)
 
@@ -85,7 +91,12 @@ def get_urls(sheet_id: str) -> dict:
                 for i, row in enumerate(data_rows)            # <-- FIXED: you need `enumerate()` here
                 if len(row) > 24 and row[0].strip()           # Only include rows with enough columns and a non-empty URL
             ]
-        
+    
+            print(f"\n📄 Extracted URLs: {urls}...")
+            debug += f"\n📄 Extracted URLs: {urls}..."
+
+            print(f"Extracted URLs: {urls}")
+
         # End for loop
 
         if not urls:
@@ -164,9 +175,7 @@ def load_site_speed_asset_optimization(worksheet, urls_to_analyze, client_name) 
 
         base_url = ""  # Replace with your base URL if needed
         for url_info in urls_to_analyze:
-            print(f"Processing URL INFO: {url_info}\n")
             url, before_completed, after_completed, row_no = url_info["url"], url_info["before_completed"], url_info["after_completed"], url_info["row_no"]
-            print(f"Processing URL: {url}\n")
             try:
                 if base_url == "":
                     # Extract base URL from the first URL in the list
@@ -180,11 +189,10 @@ def load_site_speed_asset_optimization(worksheet, urls_to_analyze, client_name) 
                 else:
                     url = base_url + '/' + url
                 
-                print(f"Checking URL: {url}")  
+                #print(f"Checking URL: {url}")  
                 if(before_completed == 'TRUE' and after_completed == 'TRUE'): continue  
 
                 result = analyze_both(url, before_completed, row_no)
-
                 if not result:
                     debug += f"\nNo result returned from analyze_both for URL: {url}"
                     raise ValueError(f"No result returned from analyze_both for URL: {url}")
@@ -236,7 +244,7 @@ def load_site_speed_asset_optimization(worksheet, urls_to_analyze, client_name) 
                         "Accessibility (before)_D": before_desktop.get('accessibility', None),
                         "Best Practices (before)_D": before_desktop.get('best_practices', None),
                         "SEO (before)_D": before_desktop.get('seo', None),
-                        "Recomendations": report,
+                        "Recomendations": "See opportunities in PageSpeed report",
                         "Completed": True
                     }
 
@@ -246,7 +254,7 @@ def load_site_speed_asset_optimization(worksheet, urls_to_analyze, client_name) 
                     range = [f"B{row_no}:M{row_no}"]
                     print(f"Range: {range}")
                     # Clear existing data
-                    worksheet.batch_clear(range)
+                    worksheet.batch_clear([f"B{row_no}:N{row_no}"])
 
                     set_with_dataframe(worksheet, df, row=row_no, col=2, include_column_header=False)
 
@@ -254,7 +262,7 @@ def load_site_speed_asset_optimization(worksheet, urls_to_analyze, client_name) 
 
                     record = {
                         "Date Reviewed": today,
-                        "Core Web Vital Assestment (after)": after_mobile.get('pass_fail_status', None),
+                        "Core Web Vital Assestment (after)": after_mobile.get('perpass_fail_statusformance', None),
                         "Performance (after)": after_mobile.get('performance', None),
                         "Accessibility (after)": after_mobile.get('accessibility', None),
                         "Best Practices (after)": after_mobile.get('best_practices', None),
@@ -271,12 +279,14 @@ def load_site_speed_asset_optimization(worksheet, urls_to_analyze, client_name) 
                     range = [f"N{row_no}:Y{row_no}"]
                     print(f"Range: {range}")
                     # Clear existing data
-                    worksheet.batch_clear(range)
+                    worksheet.batch_clear([f"N{row_no}:Y{row_no}"])
 
-                    set_with_dataframe(worksheet, df, row=row_no, col=14, include_column_header=False)
+                    set_with_dataframe(worksheet, df, row=row_no, col=15, include_column_header=False)
 
             apply_asset_optimization_formatting(worksheet)
-  
+
+            print("✅ Data written successfully.")
+            
         except Exception as e:
             print("Error writing to Google Sheet:", e)
             debug += f'Error writing to Google Sheet: {e}'
@@ -302,7 +312,7 @@ def load_bad_links(worksheet, urls_to_analyze) -> dict:
         debug = f"Executing load_bad_links for worksheet: {worksheet.title}\n"
         title = worksheet.title
         debug += f"📄 Loading tab: {title}"
-       
+    
         # Get all values from the worksheet as raw rows (lists of lists)
         all_rows = worksheet.get_all_values()
 
@@ -443,7 +453,7 @@ def apply_asset_optimization_formatting(worksheet) :
 
         rule_red = ConditionalFormatRule(
             ranges=[range_1, range_2],
-              booleanRule=BooleanRule(
+            booleanRule=BooleanRule(
                 condition=BooleanCondition('NUMBER_BETWEEN', ['0', '49']),
                 format=CellFormat(backgroundColor=Color(1, 0.8, 0.8))
             )
