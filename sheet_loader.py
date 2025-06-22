@@ -35,7 +35,7 @@ def get_urls(sheet_id: str) -> dict:
     Includes debug output to confirm correct data types.
     """
     try:
-
+        print('Getting URLs')
         debug = f"Getting URL from load_sheet for sheet_id: {sheet_id}\n"        
         # Authenticate and connect to Google Sheets
         try:
@@ -71,6 +71,7 @@ def get_urls(sheet_id: str) -> dict:
                 continue
             # End if
 
+            print(f"📄 Loading tab: {title}")
             debug += f"📄 Loading tab: {title}"
 
             # Get all values from the worksheet as raw rows (lists of lists)
@@ -78,25 +79,30 @@ def get_urls(sheet_id: str) -> dict:
 
             # Skip the first two rows if they are headers
             data_rows = all_rows[2:]  # Row indices start at 0
-            debug += f"\n📄 Data Rows: {data_rows[:5]}..."
+          #  debug += f"\n📄 Data Rows: {data_rows[:5]}..."
 
-            # Extract just the first column (URL column), assuming it's in column A
+            start_row_index = 3  # This is the actual Google Sheet row number where data starts (after skipping headers)
+
+            # Extract URLs and metadata with the real worksheet row number
             urls = [
                 {
-                    "url": row[0].strip(),
-                    "completed": str(row[13]).strip().lower() == "true"
+                    "url": row[0].strip(),                    # Column A (URL)
+                    "before_completed": row[12].strip(),      # Column M (index 12)
+                    "after_completed": row[24].strip(),       # Column Y (index 24)
+                    "row_no": start_row_index + i             # Google Sheets row number
                 }
-                for row in data_rows
-                if len(row) > 13 and row[0].strip()
+                for i, row in enumerate(data_rows)            # <-- FIXED: you need `enumerate()` here
+                if len(row) > 24 and row[0].strip()           # Only include rows with enough columns and a non-empty URL
             ]
-    
-            debug += f"\n📄 Extracted URLs: {urls}..."
+         
+         # End for loop
 
-            print(f"Extracted URLs: {urls}")
+        if not urls:
+            debug += "No URLs found in the worksheet.\n"
+            raise ValueError("No URLs found in the worksheet.")
+            
+        print(f"Extracted URLs: {urls}")
 
-        # End for loop
-
-        debug += f"Tab '{title}' loaded successfully with {len(urls)} URLs.\n"
         return {"urls": urls, "debug": debug}
 
     except Exception as e:
@@ -108,31 +114,28 @@ def load_sheet(sheet_id: str, urls_to_analyze = [], client_name = '') -> dict:
     Includes debug output to confirm correct data types.
     """
     try:
-
-        debug = f"Executing load_sheet for sheet_id: {sheet_id}\n"        
+        debug = ""
+        print(f"Executing load_sheet for sheet_id: {sheet_id}\n")        
         # Authenticate and connect to Google Sheets
         try:
             creds = Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=SCOPES)
-            debug += "Credentials loaded successfully.\n"
         except Exception as cred_err:
-            debug += f"Error loading credentials: {cred_err}\n"
+            print(f"Error loading credentials: {cred_err}\n")
             raise
 
         try:
             client = gspread.authorize(creds)
-            debug += "Client authorized successfully.\n"
         except Exception as client_err:
-            debug += f"Error authorizing Client: {client_err}\n"
+            print(f"Error authorizing Client: {client_err}\n")
             raise
 
         try:
-            spreadsheet = client.open_by_key(sheet_id)
-            debug += "Spreadsheet opened successfully.\n"
+            spreadsheet = client.open_by_key(sheet_id)        
         except Exception as e:
-            debug += f"Error opening spreadsheet: {traceback.format_exc()}\n"
+            print(f"Error opening spreadsheet: {traceback.format_exc()}\n")
             raise
             
-        debug += f"Spreadsheet '{spreadsheet.title}' loaded successfully.\n"
+        print(f"Spreadsheet '{spreadsheet.title}' loaded successfully.\n")
 
         # Loop through all tabs/worksheets
         for worksheet in spreadsheet.worksheets():
@@ -160,64 +163,45 @@ def load_site_speed_asset_optimization(worksheet, urls_to_analyze, client_name) 
     """
 
     try:
-        debug = f"Executing load_site_speed_asset_optimization for worksheet: {worksheet.title}\n"
         title = worksheet.title
-        debug += f"📄 Loading tab: {title}"
-        sheet_data = {}
 
-        # Read the first two rows as headers
-        raw_header1 = worksheet.row_values(1)
-        raw_header2 = worksheet.row_values(2)
+        print(f"Executing load_site_speed_asset_optimization for worksheet: {title}\n")
+        print(f"Client Name: {client_name}")
+        print(f"URLs: {urls_to_analyze}")
 
-        # debug += f"\n📄 Raw Header 1: {raw_header1}"
-        # debug += f"\n📄 Raw Header 2: {raw_header2}"
-
-        # Combine them into one row of unique, clean headers
-        combined_headers = []
-        for i in range(max(len(raw_header1), len(raw_header2))):
-            part1 = raw_header1[i].strip() if i < len(raw_header1) else ""
-            part2 = raw_header2[i].strip() if i < len(raw_header2) else ""
-            combined = f"{part1} - {part2}".strip(" -")
-            combined_headers.append(combined or f"Column_{i}")
-
-        debug += f"\n📄 Combined Headers: {combined_headers}"
-
-        # Get all values from the worksheet as raw rows (lists of lists)
-        all_rows = worksheet.get_all_values()
-
-        # Skip the first two rows if they are headers
-        data_rows = all_rows[2:]  # Row indices start at 0
         insights_data = []
+
         base_url = ""  # Replace with your base URL if needed
         for url_info in urls_to_analyze:
-            url, completed = url_info["url"], url_info["completed"]
+            print(f"Processing URL INFO: {url_info}\n")
+            url, before_completed, after_completed, row_no = url_info["url"], url_info["before_completed"], url_info["after_completed"], url_info["row_no"]
+            print(f"Processing URL: {url}\n")
             try:
                 if base_url == "":
                     # Extract base URL from the first URL in the list
                     base_url = url
-                    print(f"Base URL set to: {base_url}")
                     if base_url.startswith("http://"):
                         base_url = base_url.replace("http://", "https://")
-                        print(f"Base URL set to: {base_url}")
                     elif not base_url.startswith("https://"):
                         base_url = "https://" + base_url
-                        print(f"Base URL set to: {base_url}")
 
                     url = base_url
                 else:
                     url = base_url + '/' + url
                 
-                #print(f"Checking URL: {url}")           
-                result = analyze_both(url, completed)
+                print(f"Checking URL: {url}")  
+                if(before_completed == 'TRUE' and after_completed == 'TRUE'): continue  
+
+                result = analyze_both(url, before_completed, row_no)
                 if not result:
                     debug += f"\nNo result returned from analyze_both for URL: {url}"
                     raise ValueError(f"No result returned from analyze_both for URL: {url}")
 
-             #   generated_report = generate_seo_report(result, client_name, url)
+            #   generated_report = generate_seo_report(result, client_name, url)
 
-             #   if not generated_report:
-             #       debug += "No SEO Report Generated."
-             #       raise ValueError("No SEO Report Generated.")
+            #   if not generated_report:
+            #       debug += "No SEO Report Generated."
+            #       raise ValueError("No SEO Report Generated.")
 
                 insights_data.append(result)
 
@@ -225,15 +209,6 @@ def load_site_speed_asset_optimization(worksheet, urls_to_analyze, client_name) 
                 insights_data.append({"url": url, "error": str(e)})
         
         print(insights_data)
-
-        # Extract just the first column (URL column), assuming it's in column A
-        #urls = [row[0].strip() for row in data_rows if len(row) > 0 and row[0].strip()]
-
-        # Convert to DataFrame
-        #df = pd.DataFrame(urls, columns=["Page URL"])
-        df = pd.DataFrame(data_rows, columns=combined_headers)
-
-        debug += f"\nDataFrame created for '{title}', shape: {df.shape}"
 
         try:
 
@@ -243,41 +218,49 @@ def load_site_speed_asset_optimization(worksheet, urls_to_analyze, client_name) 
 
             for entry in insights_data:
                 url = entry.get('url')
-
+              
                 before_mobile = entry.get('before_mobile', {})
                 before_desktop = entry.get('before_desktop', {})
                 after_mobile = entry.get('after_mobile', {})
                 after_desktop = entry.get('after_desktop', {})
 
+                row_no = before_mobile.get('row_no') or after_mobile.get('row_no')
+                if not row_no:
+                    print(f"❌ Skipping {url} — missing row number")
+                    continue
+
                 if before_mobile and before_desktop:
 
                     record = {
                         "Date Reviewed": today,
+                        "Core Web Vital Assestment (before)": before_mobile.get('pass_fail_status', None),
                         "Performance (before)": before_mobile.get('performance', None),
                         "Accessibility (before)": before_mobile.get('accessibility', None),
                         "Best Practices (before)": before_mobile.get('best_practices', None),
                         "SEO (before)": before_mobile.get('seo', None),
-                        "Performance (before)_D": before_desktop.get('performance', None),
+                         "Performance (before)_D": before_desktop.get('performance', None),
                         "Accessibility (before)_D": before_desktop.get('accessibility', None),
                         "Best Practices (before)_D": before_desktop.get('best_practices', None),
                         "SEO (before)_D": before_desktop.get('seo', None),
                         "Recomendations": "See opportunities in PageSpeed report",
-                        "Completed": 1
+                        "Completed": True
                     }
 
-                    records.append(record)
+                    #records.append(record)
 
-                    df = pd.DataFrame(records)
-
+                    df = pd.DataFrame([record])
+                    range = [f"B{row_no}:N{row_no}"]
+                    print(f"Range: {range}")
                     # Clear existing data
-                    worksheet.batch_clear(["B3:L"])
+                    worksheet.batch_clear(range)
 
-                    set_with_dataframe(worksheet, df, row=3, col=1, include_column_header=False)
+                    set_with_dataframe(worksheet, df, row=row_no, col=2, include_column_header=False)
 
                 else: 
 
                     record = {
                         "Date Reviewed": today,
+                        "Core Web Vital Assestment (after)": after_mobile.get('perpass_fail_statusformance', None),
                         "Performance (after)": after_mobile.get('performance', None),
                         "Accessibility (after)": after_mobile.get('accessibility', None),
                         "Best Practices (after)": after_mobile.get('best_practices', None),
@@ -289,16 +272,17 @@ def load_site_speed_asset_optimization(worksheet, urls_to_analyze, client_name) 
                         "Recomendations": "See opportunities in PageSpeed report"
                     }
 
-                    records.append(record)
+                    #records.append(record)
 
-                    df = pd.DataFrame(records)
-
+                    df = pd.DataFrame([record])
+                    range = [f"B{row_no}:N{row_no}"]
+                    print(f"Range: {range}")
                     # Clear existing data
-                    worksheet.batch_clear(["O3:Z"])
+                    worksheet.batch_clear(range)
 
-                    set_with_dataframe(worksheet, df, row=3, col=15, include_column_header=False)
+                    set_with_dataframe(worksheet, df, row=row_no, col=14, include_column_header=False)
 
-           # apply_asset_optimization_formatting(worksheet)
+            apply_asset_optimization_formatting(worksheet)
 
             print("✅ Data written successfully.")
             
@@ -448,12 +432,12 @@ def apply_bad_links_formatting(worksheet) :
 
 def apply_asset_optimization_formatting(worksheet) :
 
-    debug = "Applying Bad Links Formating"
+    debug = "Applying Asset Optimization Formatting"
     try: 
 
         # Define ranges
-        range_1 = GridRange.from_a1_range('C2:L', worksheet)
-        range_2 = GridRange.from_a1_range('O2:X', worksheet)
+        range_1 = GridRange.from_a1_range('D3:K', worksheet)
+        range_2 = GridRange.from_a1_range('P3:W', worksheet)
 
         rule_green = ConditionalFormatRule(
             ranges=[range_1, range_2],
@@ -479,10 +463,30 @@ def apply_asset_optimization_formatting(worksheet) :
             )
         )
 
+        # Create GridRange from A1 notation
+        range_c = GridRange.from_a1_range('C3:C', worksheet)
+        range_d = GridRange.from_a1_range('O3:O', worksheet)
+
+        rule_pass = ConditionalFormatRule(
+            ranges=[range_c,range_d],
+            booleanRule=BooleanRule(
+                condition=BooleanCondition('TEXT_EQ', ['PASS']),
+                format=CellFormat(backgroundColor=Color(0.8, 1, 0.8))
+            )
+        )
+
+        rule_fail = ConditionalFormatRule(
+            ranges=[range_c, range_d],
+            booleanRule=BooleanRule(
+                condition=BooleanCondition('TEXT_EQ', ['FAIL']),
+                format=CellFormat(backgroundColor=Color(1, 0.8, 0.8))
+            )
+        )
+
         # Apply rules
         rules = get_conditional_format_rules(worksheet)
         rules.clear()
-        rules.extend([rule_green, rule_yellow, rule_red])
+        rules.extend([rule_green, rule_yellow, rule_red, rule_pass, rule_fail])
         rules.save()
 
         return {"debug": debug}
