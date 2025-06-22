@@ -2,6 +2,7 @@ import requests
 from dotenv import load_dotenv
 import os
 import sys
+import re
 
 PAGE_SPEED_API_KEY = os.getenv("PAGE_SPEED_API_KEY")
 if not PAGE_SPEED_API_KEY:
@@ -12,7 +13,7 @@ if not PAGE_SPEED_API_ENDPOINT:
     raise ValueError("PAGE_SPEED_API_ENDPOINT environment variable is not set. Please set it in your .env file.")
 
 
-def analyze_both(url: str, completed: bool) -> dict:
+def analyze_both(url: str, completed: bool, row_no: int) -> dict:
     """
     Analyze a URL for both mobile and desktop strategies using Google PageSpeed Insights API.
     
@@ -29,17 +30,17 @@ def analyze_both(url: str, completed: bool) -> dict:
     if completed:
         return {
             "url": url,
-            "after_mobile": analyze_url(url, strategy="mobile"),
-            "after_desktop": analyze_url(url, strategy="desktop")
+            "after_mobile": analyze_url(url, "mobile", row_no),
+            "after_desktop": analyze_url(url, "desktop", row_no)
         }
     else:
         return {
             "url": url,
-            "before_mobile": analyze_url(url, strategy="mobile"),
-            "before_desktop": analyze_url(url, strategy="desktop")
+            "before_mobile": analyze_url(url, "mobile", row_no),
+            "before_desktop": analyze_url(url, "desktop", row_no)
         }
 
-def analyze_url(url: str, strategy: str) -> dict:
+def analyze_url(url: str, strategy: str, row_no: int) -> dict:
     """
     Helper function to query the PageSpeed API for one strategy.
     
@@ -53,7 +54,8 @@ def analyze_url(url: str, strategy: str) -> dict:
     """
     params = {
         "url": url,
-        "strategy": strategy
+        "strategy": strategy,
+        "category": ["performance", "accessibility", "best-practices", "seo"]
     }
 
     print(f"PageSpeed analyzing: {strategy}")
@@ -67,9 +69,8 @@ def analyze_url(url: str, strategy: str) -> dict:
         data = response.json()
 
         lighthouse = data.get("lighthouseResult", {})
-        audits = lighthouse.get("audits", {})
         categories = lighthouse.get("categories", {})
-
+        audits = data.get("lighthouseResult", {}).get("audits", {})
         # 🔍 Extract recommendations (opportunities)
         opportunities = [
             {
@@ -96,17 +97,25 @@ def analyze_url(url: str, strategy: str) -> dict:
             if audit.get("details", {}).get("type") == "diagnostic"
         ]
 
-
         result = {
             "strategy": strategy,
             "performance": int(categories.get("performance", {}).get("score", 0) * 100),
             "accessibility": int(categories.get("accessibility", {}).get("score", 0) * 100),
             "best_practices": int(categories.get("best-practices", {}).get("score", 0) * 100),
             "seo": int(categories.get("seo", {}).get("score", 0) * 100),
+            # Audits - extract specific metrics          
+            "first_contentful_paint": audits.get("first-contentful-paint", {}).get("displayValue"),
+            "largest_contentful_paint": audits.get("largest-contentful-paint", {}).get("displayValue"),
+            "total_blocking_time": audits.get("total-blocking-time", {}).get("displayValue"),
+            "cumulative_layout_shift": audits.get("cumulative-layout-shift", {}).get("displayValue"),
+            "speed_index": audits.get("speed-index", {}).get("displayValue"),
             "opportunities": opportunities,
             "diagnostics": diagnostics,
-            "pass_fail_status": evaluate_pass_fail(categories)
+            "pass_fail_status": evaluate_pass_fail(categories, audits),
+            "row_no": row_no
         }
+
+        print(result)
 
         return result
     
@@ -123,26 +132,33 @@ def score_as_percent(category):
         return round(category["score"] * 100)
     return None
 
-def evaluate_pass_fail(data):
-    audits = data.get("performance", {}).get("audits", {})
-    score = data.get("performance", {}).get("score", 0) * 100
+def evaluate_pass_fail(categories, audits):
 
     try:
-        lcp = audits["largest-contentful-paint"]["numericValue"]  # in ms
-        tbt = audits["total-blocking-time"]["numericValue"]        # in ms
-        cls = audits["cumulative-layout-shift"]["numericValue"]    # unitless
+        lcp = extract_number(audits.get("largest-contentful-paint", {}).get("displayValue"))
+        tbt = extract_number(audits.get("total-blocking-time", {}).get("displayValue"))      
+        cls = extract_number(audits.get("cumulative-layout-shift", {}).get("displayValue"))
     except KeyError:
         return "insufficient_data"
 
-    # Convert ms to seconds for LCP
-    lcp_sec = lcp / 1000
+    score = int(categories.get("performance", {}).get("score", 0) * 100)
 
     if (
-        lcp_sec <= 2.5 and
+        lcp <= 2.5 and
         tbt <= 200 and
         cls <= 0.1 and
         score >= 90
     ):
-        return "pass"
+        return "PASS"
     else:
-        return "fail"
+        return "FAIL"
+    
+def extract_number(value_str):
+    if not isinstance(value_str, str):
+        return None
+    # Remove non-breaking spaces and extract numeric part
+    cleaned = value_str.replace('\xa0', ' ').strip()
+    match = re.search(r"[\d.]+", cleaned)
+    if match:
+        return float(match.group())
+    return None
