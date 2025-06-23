@@ -54,7 +54,6 @@ async def load_sheet_post(request: Request, sheet_id: str = Form(...)):
         
         result = get_urls(sheet_id)
 
-        print(f"URLs to analyze: {result.get('urls', [])}\n")
         urls_to_analyze = result.get('urls', [])
         debug += result.get('debug', '')
 

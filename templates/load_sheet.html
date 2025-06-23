@@ -7,6 +7,25 @@
         {% set stage = stage.upper() %}
         <h1 class="text-xl font-bold mb-2">Load Sheet - {{ stage }}</h1>
 
+         <!-- Client Dropdown -->
+        <label class="block text-gray-700 font-medium">Select Client</label>
+        <select name="client_name" required
+                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-400">
+            <option value="" disabled selected>Select a client</option>
+            <option value="webeyecare">webeyecare</option>
+            <option value="client2">Client 2</option>
+            <option value="client3">Client 3</option>
+            <!-- Add more clients here -->
+        </select>
+
+        <!-- Stage Dropdown -->
+        <label class="block text-gray-700 font-medium">Optimization Stage</label>
+        <select name="stage" required
+                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-400">
+            <option value="" disabled selected>Select stage</option>
+            <option value="before">Before Optimization</option>
+            <option value="after">After Optimization</option>
+        </select>
 
         <h2 class="text-lg font-bold mb-2">Enter Your Google Sheet ID</h2>
         <input type="text" name="sheet_id" required

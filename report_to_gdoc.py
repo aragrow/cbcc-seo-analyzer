@@ -21,21 +21,13 @@ docs_service = build("docs", "v1", credentials=creds)
 
 def txt_to_doc(filepath: str, client_name):
 
+    # === DERIVE SHEET NAME FROM FILE PATH ===
+    # Target Google Drive path
+    folder_path_parts = [GOOGLE_DRIVE_REPORT_FOLDER, client_name]
+    parent_id = "root"
+    doc_title = os.path.splitext(os.path.basename(filepath))[0]
+
     try:
-        # === LOAD TXT FILE ===
-        with open(filepath, "r", encoding="utf-8") as file:
-            lines = file.readlines()
-
-        # === PARSE LINES TO ROWS ===
-        # You can choose CSV-style or one-column-per-line
-        rows = [[line.strip()] for line in lines if line.strip()]  # Single-column format
-
-        # === DERIVE SHEET NAME FROM FILE PATH ===
-        # Target Google Drive path
-        folder_path_parts = [GOOGLE_DRIVE_REPORT_FOLDER, client_name]
-        parent_id = "root"
-        doc_title = os.path.splitext(os.path.basename(filepath))[0]
-
         # Step 1: Find or create each folder level
         for folder_name in folder_path_parts:
             query = f"'{parent_id}' in parents and name = '{folder_name}' and mimeType = 'application/vnd.google-apps.folder'"
@@ -55,6 +47,11 @@ def txt_to_doc(filepath: str, client_name):
                 ).execute()
                 parent_id = new_folder["id"]
 
+    except Exception as e:
+        print(f"Error Find or create each folder level: {e}")
+        return False
+
+    try:
         # === STEP 2: READ TXT FILE CONTENT ===
         with open(filepath, "r", encoding="utf-8") as f:
             lines = f.readlines()
@@ -62,7 +59,11 @@ def txt_to_doc(filepath: str, client_name):
         # Format: one row per line, one column (A) per row
         data_rows = [[line.strip()] for line in lines if line.strip()]
 
+    except Exception as e:
+        print(f"Error Reading the text file: {e}")
+        return False
 
+    try:
         # === STEP 3: CREATE GOOGLE DOC ===
         doc_metadata = {
             "title": doc_title,
@@ -73,28 +74,72 @@ def txt_to_doc(filepath: str, client_name):
             fields="id"
         ).execute()
         doc_id = doc.get("id")
+    except Exception as e:
+        print(f"Error Creating Google Doc: {e}")
+        return False
+    
+    try:
+        drive_service.permissions().create(
+            fileId=doc_id,
+            body={
+                "type": "user",  # or 'domain', 'group', or 'anyone'
+                "role": "writer",  # 'reader', 'commenter', or 'writer'
+                "emailAddress": creds.service_account_email  # replace with real address
+            },
+            sendNotificationEmail=False,  # Don't send email notification
+            fields="id"
+        ).execute()
 
-        # === STEP 4: INSERT TEXT INTO DOC ===
-        requests = []
-        for line in lines:
-            line = line.strip()
-            if line:
-                requests.append({
-                    "insertText": {
-                        "location": {"index": 1},
-                        "text": line + "\n"
-                    }
-                })
+    except Exception as e:
+        print(f"Error Granting Permission Google Doc: {e}")
+        return False
 
-        if requests:
-            docs_service.documents().batchUpdate(documentId=doc_id, body={"requests": requests[::-1]}).execute()
-            print(f"Google Doc '{doc_title}' created with {len(lines)} lines.")
+    
+    # === STEP 4: INSERT TEXT INTO DOC ===
 
-        # === STEP 5: Output the link
-        print(f" View it here: https://docs.google.com/document/d/{doc_id}/edit")
-
-        return f"https://docs.google.com/document/d/{doc_id}/edit"
+    try:
+        doc = docs_service.documents().get(documentId=doc_id).execute()
+        content = doc.get("body", {}).get("content", [])
+        end_index = content[-1]["endIndex"] if content else 1
     
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Error Requesting Google Doc: {e}")
         return False
+
+    requests = []
+    for line in lines:
+        try:
+            text = str(line).strip()
+            if not text:
+                continue
+            requests.append({
+                "insertText": {
+                    "location": {"index": end_index},
+                    "text": text + "\n"
+                }
+            })
+            end_index += len(text) + 1
+        except Exception as ex:
+            print(f"Skipped line due to error: {ex} — line: {line}")
+
+    print(requests)
+    print("-------")
+    print(f"Doc Id: {doc_id}")
+
+    try:
+        if requests:
+            docs_service.documents().batchUpdate(documentId=doc_id, body={"requests": requests}).execute()
+            print(f"Successfully inserted {len(requests)} lines")
+        else:
+            print(" No valid lines to insert.")
+
+    except Exception as e:
+        print(f"Error Inserting Text in Doc: {e}")
+        return False
+
+     # === STEP 5: Output the link
+    print(f" View it here: https://docs.google.com/document/d/{doc_id}/edit")
+
+    return f"https://docs.google.com/document/d/{doc_id}/edit"
+    
+   

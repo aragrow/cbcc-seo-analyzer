@@ -95,11 +95,6 @@ def get_urls(sheet_id: str) -> dict:
                 for i, row in enumerate(data_rows)            # <-- FIXED: you need `enumerate()` here
                 if len(row) > 24 and row[0].strip()           # Only include rows with enough columns and a non-empty URL
             ]
-    
-            print(f"\n📄 Extracted URLs: {urls}...")
-            debug += f"\n📄 Extracted URLs: {urls}..."
-
-            print(f"Extracted URLs: {urls}")
 
         # End for loop
 
@@ -146,12 +141,15 @@ def load_sheet(sheet_id: str, urls_to_analyze = [], client_name = '') -> dict:
         # Loop through all tabs/worksheets
         for worksheet in spreadsheet.worksheets():
             title = worksheet.title
+            print(f"Tab: {title}")
             if title == "Site Speed & Asset Optimization":
-                result = load_site_speed_asset_optimization(worksheet, urls_to_analyze, client_name)
-                debug += result.get("debug", "")
+                print("Exec: load_site_speed_asset_optimization()")
+                #result = load_site_speed_asset_optimization(worksheet, urls_to_analyze, client_name)
+                #debug += result.get("debug", "")
 
             if title == "Bad Links":
-            #   result = load_bad_links(worksheet, urls_to_analyze)
+                print("Exec: load_bad_link()")
+                result = load_bad_links(worksheet, urls_to_analyze)
                 debug += result.get("debug", "")
             # End if
 
@@ -311,17 +309,17 @@ def load_bad_links(worksheet, urls_to_analyze) -> dict:
     Analyze site speed optimization sheet.
     Returns a summary string of processed data.
     """
-
+    print(f"urls_to_analyze: {urls_to_analyze}")
     try:
         debug = f"Executing load_bad_links for worksheet: {worksheet.title}\n"
         title = worksheet.title
         debug += f"📄 Loading tab: {title}"
     
         # Get all values from the worksheet as raw rows (lists of lists)
-        all_rows = worksheet.get_all_values()
+        #all_rows = worksheet.get_all_values()
 
         # Skip the first two rows if they are headers
-        data_rows = all_rows[1:]  # Row indices start at 0
+        #data_rows = all_rows[1:]  # Row indices start at 0
 
         # Extract just the first column (URL column), assuming it's in column A
         #urls = [row[0].strip() for row in data_rows if len(row) > 0 and row[0].strip()]
@@ -329,22 +327,19 @@ def load_bad_links(worksheet, urls_to_analyze) -> dict:
         # Loop through urls_to_analyze and execute check_inpage_urls(url)
         results = []
         base_url = ""  # Replace with your base URL if needed
-        for url in urls_to_analyze:
+        for item in urls_to_analyze:
             try:
                 if base_url == "":
                     # Extract base URL from the first URL in the list
-                    base_url = url
-                    print(f"Base URL set to: {base_url}")
+                    base_url = item['url']
                     if base_url.startswith("http://"):
                         base_url = base_url.replace("http://", "https://")
-                        print(f"Base URL set to: {base_url}")
                     elif not base_url.startswith("https://"):
                         base_url = "https://" + base_url
-                        print(f"Base URL set to: {base_url}")
-
+                    print(f"Base URL set to: {base_url}")
                     url = base_url
                 else:
-                    url = base_url + '/' + url
+                    url = base_url + '/' + item['url']
                 
                 #print(f"Checking URL: {url}")           
                 result = check_inpage_urls(url)
@@ -363,7 +358,7 @@ def load_bad_links(worksheet, urls_to_analyze) -> dict:
 
             # Convert to DataFrame
             #df = pd.DataFrame(urls, columns=["Page URL"])
-            headers = ["page_url", "audit_date", "in_page_url", "status_code", "tag"]
+            headers = ["page_url", "audit_date", "in_page_url", "status_code", "tag", "Notes"]
             df = pd.DataFrame(flat_data, columns=headers)
 
             # Clear existing data
@@ -418,10 +413,18 @@ def apply_bad_links_formatting(worksheet) :
             )
         )
 
+        rule_orange = ConditionalFormatRule(
+            ranges=[range_d],
+            booleanRule=BooleanRule(
+                condition=BooleanCondition('TEXT_EQ', ['TOXIC']),
+                format=CellFormat(backgroundColor=Color(1, 0.647, 0.0))
+            )
+        )
+
         # Apply rules
         rules = get_conditional_format_rules(worksheet)
         rules.clear()
-        rules.extend([rule_green, rule_yellow, rule_red])
+        rules.extend([rule_green, rule_yellow, rule_red, rule_orange])
         rules.save()
 
         return {"debug": debug}

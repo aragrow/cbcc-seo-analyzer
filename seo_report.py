@@ -33,6 +33,12 @@ def generate_seo_report(data, client_name, url):
     if not custom_prompt:
         raise ValueError(f"Prompt file for client '{client_name}' is empty or missing.")
 
+    with open(f"report/example.txt", "r") as fi:
+        example_report = fi.read()
+    
+    if not example_report:
+        example_report = ''
+    
     prompt = f"""
     You are a technical SEO expert with experience in interpreting Google PageSpeed Insights data.
 
@@ -43,7 +49,10 @@ def generate_seo_report(data, client_name, url):
     - Best Practices
     - SEO
 
+    {custom_prompt}
+
     ## Format
+    ---------------------------
     The results into a well-structured, human-readable report.
     The report should be divided in two sections the Mobile and the Desktop Report.
     The report should be in markup to copy to a google doc.
@@ -52,11 +61,13 @@ def generate_seo_report(data, client_name, url):
     - Identifies problem areas
     - Suggests specific improvements
     - Prioritizes fixes based on potential SEO or UX impact
-
-    {custom_prompt}
-
-    ## Input
-
+    
+    ## Example of Report:
+    ---------------------
+    {example_report}
+    
+    ## Input:
+    --------
     Below is the raw PageSpeed Insights API output, structured as JSON. Analyze and use it to populate the fields above.
 
     {json.dumps(data, indent=2)}
@@ -73,11 +84,11 @@ def generate_seo_report(data, client_name, url):
         print(e)
         raise ValueError(f"Text - Unable to create Text file")
 
-    try:
-        gdoc = txt_to_doc(file, client_name)
-    except Exception as e:
-        print(e)
-        raise ValueError(f"GDoc - Unable to create Google Doc")
+   # try:
+   #     gdoc = txt_to_doc(file, client_name)
+   # except Exception as e:
+   #     print(e)
+   #     raise ValueError(f"GDoc - Unable to create Google Doc")
 
-    return gdoc
-    
+    #return gdoc
+    return file
