@@ -1,0 +1,233 @@
+# Webeyecare.com Performance Audit - Precision1 for Astigmatism 90 Pack
+
+## Mobile Report
+
+*URL: https://webeyecare.com/precision1-for-astigmatism-90-pack*
+
+*Date: October 26, 2023*
+
+### Performance: 54
+
+-   **First Contentful Paint (FCP):** 2.8 s
+-   **Largest Contentful Paint (LCP):** 7.8 s
+-   **Speed Index:** 4.6 s
+-   **Total Blocking Time (TBT):** 560 ms
+-   **Cumulative Layout Shift (CLS):** 0
+
+*   The mobile performance score is in the "Poor" range and requires significant optimization. The LCP is excessively high, indicating that users are experiencing a long delay before the main content becomes visible.
+
+### Accessibility: 90
+
+*   The accessibility score is excellent.
+
+### Best Practices: 68
+
+*   Room for improvement in adhering to web development best practices.
+
+### SEO: 83
+
+*   Good SEO score.
+
+### Opportunities
+
+*   **Prioritize LCP Image:**
+    *   *Recommendation:* Preload the LCP image.
+    *   *Potential Savings:* Not Quantified
+*   **Reduce Unused JavaScript:**
+    *   *Recommendation:* Eliminate or defer loading of unused JS.
+    *   *Potential Savings:* 256 KiB
+    *   *Identified Scripts:*
+        *   `https://cdn11.bigcommerce.com/s-fu16hs0usz/stencil/7b62a2b0-2d7a-013e-c06f-42bd4fea94e2/e/41456a00-1886-013e-78b9-42ad74ea4ca6/dist/es5/theme-bundle.chunk.19.js`
+        *   `https://www.googletagmanager.com/gtag/js?id=G-N8CB6S1LRK`
+        *   `https://searchanise-ef84.kxcdn.com/widgets.13074.min.js`
+        *   `https://cdn11.bigcommerce.com/s-fu16hs0usz/stencil/7b62a2b0-2d7a-013e-c06f-42bd4fea94e2/e/41456a00-1886-013e-78b9-42ad74ea4ca6/dist/es5/theme-bundle.chunk.0.js`
+        *   `https://kdzhf.webeyecare.com/providers/atLabel/load`
+        *   `https://cdn11.bigcommerce.com/s-fu16hs0usz/stencil/7b62a2b0-2d7a-013e-c06f-42bd4fea94e2/e/41456a00-1886-013e-78b9-42ad74ea4ca6/dist/es5/theme-bundle.main.js`
+*   **Efficiently Encode Images:**
+    *   *Recommendation:* Optimize the compression of the product image.
+    *   *Potential Savings:* 20 KiB
+    *   *Identified Image:* `https://cdn11.bigcommerce.com/s-fu16hs0usz/images/stencil/960w/products/3241/4952/Precision_1_Toric_90_Pack_-_ALCON__32554.1612193965.jpg?c=1`
+*   **Reduce Initial Server Response Time:**
+    *   *Recommendation:* Optimize server-side code and infrastructure.
+    *   *Potential Savings:* 586 ms
+*   **Avoid Multiple Page Redirects:**
+    *   *Recommendation:* Remove unnecessary redirects.
+    *   *Potential Savings:* 780 ms
+*   **Reduce Unused CSS:**
+    *   *Recommendation:* Remove unused CSS rules.
+    *   *Potential Savings:* 81 KiB
+    *   *Identified Stylesheet:* `https://cdn11.bigcommerce.com/s-fu16hs0usz/stencil/7b62a2b0-2d7a-013e-c06f-42bd4fea94e2/e/41456a00-1886-013e-78b9-42ad74ea4ca6/css/__wecproduct_uncritical.css?vs`
+*   **Serve Images in Next-Gen Formats:**
+    *   *Recommendation:* Serve images in WebP or AVIF format.
+    *   *Potential Savings:* 72 KiB
+    *   *Identified Image:* `https://cdn11.bigcommerce.com/s-fu16hs0usz/images/stencil/960w/products/3241/4952/Precision_1_Toric_90_Pack_-_ALCON__32554.1612193965.jpg?c=1`
+*   **Avoid Serving Legacy JavaScript to Modern Browsers:**
+    *   *Recommendation:* Refactor JavaScript build process to target modern browsers.
+    *   *Potential Savings:* 20 KiB
+*   **Eliminate Render-Blocking Resources:**
+    *   *Recommendation:* Defer loading of non-critical scripts.
+    *   *Potential Savings:* 300 ms
+    *    *Identified Script:* `https://microapps.bigcommerce.com/bodl-events/1.9.4/index.js`
+*   **Properly Size Images:**
+    *   *Recommendation:* Serve appropriately sized images.
+    *   *Potential Savings:* 77 KiB
+    *   *Identified Image:* `https://cdn11.bigcommerce.com/s-fu16hs0usz/images/stencil/960w/products/3241/4952/Precision_1_Toric_90_Pack_-_ALCON__32554.1612193965.jpg?c=1`
+
+## Desktop Report
+
+*URL: https://webeyecare.com/precision1-for-astigmatism-90-pack*
+
+*Date: October 26, 2023*
+
+### Performance: 76
+
+-   **First Contentful Paint (FCP):** 0.7 s
+-   **Largest Contentful Paint (LCP):** 2.1 s
+-   **Speed Index:** 1.7 s
+-   **Total Blocking Time (TBT):** 160 ms
+-   **Cumulative Layout Shift (CLS):** 0.17
+
+*   The desktop performance score is in the "Good" range but can be further improved.
+
+### Accessibility: 91
+
+*   The accessibility score is excellent.
+
+### Best Practices: 70
+
+*   Room for improvement in adhering to web development best practices.
+
+### SEO: 83
+
+*   Good SEO score.
+
+### Opportunities
+
+*   **Defer Offscreen Images:**
+    *   *Recommendation:* Implement lazy loading for offscreen images.
+    *   *Potential Savings:* 3 KiB
+    *   *Identified Image:* `https://cdn11.bigcommerce.com/s-fu16hs0usz/stencil/7b62a2b0-2d7a-013e-c06f-42bd4fea94e2/e/41456a00-1886-013e-78b9-42ad74ea4ca6/img/payment-methods/sezzle.svg`
+*   **Enable Text Compression:**
+    *   *Recommendation:* Enable GZIP or Brotli compression for text-based resources.
+    *   *Potential Savings:* 5 KiB
+    *    *Identified Script:* `https://s.axon.ai/pixel.js`
+*   **Reduce Initial Server Response Time:**
+    *   *Recommendation:* Optimize server-side code and infrastructure.
+    *   *Potential Savings:* 591 ms
+*   **Serve Images in Next-Gen Formats:**
+    *   *Recommendation:* Serve images in WebP or AVIF format.
+    *   *Potential Savings:* 207 KiB
+    *   *Identified Image:* `https://cdn11.bigcommerce.com/s-fu16hs0usz/images/stencil/1920w/products/3241/4952/Precision_1_Toric_90_Pack_-_ALCON__32554.1612193965.jpg?c=1`
+*   **Efficiently Encode Images:**
+    *   *Recommendation:* Optimize the compression of the product image.
+    *   *Potential Savings:* 61 KiB
+    *   *Identified Image:* `https://cdn11.bigcommerce.com/s-fu16hs0usz/images/stencil/1920w/products/3241/4952/Precision_1_Toric_90_Pack_-_ALCON__32554.1612193965.jpg?c=1`
+*   **Reduce Unused CSS:**
+    *   *Recommendation:* Remove unused CSS rules.
+    *   *Potential Savings:* 76 KiB
+    *   *Identified Stylesheet:* `https://cdn11.bigcommerce.com/s-fu16hs0usz/stencil/7b62a2b0-2d7a-013e-c06f-42bd4fea94e2/e/41456a00-1886-013e-78b9-42ad74ea4ca6/css/__wecproduct_uncritical.css?vs`
+*   **Avoid Serving Legacy JavaScript to Modern Browsers:**
+    *   *Recommendation:* Refactor JavaScript build process to target modern browsers.
+    *   *Potential Savings:* 20 KiB
+*   **Avoid Multiple Page Redirects:**
+    *   *Recommendation:* Remove unnecessary redirects.
+    *   *Potential Savings:* 220 ms
+*   **Reduce Unused JavaScript:**
+    *   *Recommendation:* Eliminate or defer loading of unused JS.
+    *   *Potential Savings:* 263 KiB
+    *   *Identified Scripts:*
+        *   `https://cdn11.bigcommerce.com/s-fu16hs0usz/stencil/7b62a2b0-2d7a-013e-c06f-42bd4fea94e2/e/41456a00-1886-013e-78b9-42ad74ea4ca6/dist/es5/theme-bundle.chunk.19.js`
+        *   `https://www.googletagmanager.com/gtag/js?id=G-N8CB6S1LRK`
+        *   `https://searchanise-ef84.kxcdn.com/widgets.13074.min.js`
+        *   `https://cdn11.bigcommerce.com/s-fu16hs0usz/stencil/7b62a2b0-2d7a-013e-c06f-42bd4fea94e2/e/41456a00-1886-013e-78b9-42ad74ea4ca6/dist/es5/theme-bundle.chunk.0.js`
+        *   `https://cdn11.bigcommerce.com/s-fu16hs0usz/stencil/7b62a2b0-2d7a-013e-c06f-42bd4fea94e2/e/41456a00-1886-013e-78b9-42ad74ea4ca6/dist/es5/theme-bundle.main.js`
+        *   `https://kdzhf.webeyecare.com/providers/atLabel/load`
+*   **Properly Size Images:**
+    *   *Recommendation:* Serve appropriately sized images.
+    *   *Potential Savings:* 292 KiB
+    *   *Identified Image:* `https://cdn11.bigcommerce.com/s-fu16hs0usz/images/stencil/1920w/products/3241/4952/Precision_1_Toric_90_Pack_-_ALCON__32554.1612193965.jpg?c=1`
+*   **Eliminate Render-Blocking Resources:**
+    *   *Recommendation:* Defer loading of non-critical scripts.
+    *   *Potential Savings:* 80 ms
+    *    *Identified Script:* `https://microapps.bigcommerce.com/bodl-events/1.9.4/index.js`
+
+## Recommendations
+
+Based on the PageSpeed Insights data, here's a prioritized list of recommendations focusing on improving site speed and SEO within the BigCommerce platform limitations:
+
+**Prioritization:**
+
+*   **High:** Directly impacts Core Web Vitals (LCP, FID/TBT, CLS), SEO, and user experience.
+*   **Medium:** Noticeable performance gains, impacts user experience.
+*   **Low:** Incremental improvements, best practice adherence.
+
+### 1.  Optimize and Properly Size the Largest Contentful Paint (LCP) Image (High)**
+
+*   **Problem:** The main product image is consistently identified as a major performance bottleneck on both mobile and desktop.
+*   **Specific Improvements:**
+    *   **Implement WebP/AVIF:** Use a CDN or a BigCommerce app that supports serving images in next-gen formats like WebP or AVIF.
+    *   **Properly Size Images:** Ensure the image served matches the display size on different devices. The analysis indicates serving a much larger image than necessary. While BigCommerce uses `srcset`, it's not optimally configured. Investigate the theme's image handling and potentially customize it. Consider using the built-in image manager.
+    *   **Preload LCP image:** Implement preloading of the LCP image
+*   **Rationale:** Directly improves LCP, reduces bandwidth consumption, and enhances user experience. This is the single biggest opportunity for improvement.
+
+### 2.  Reduce Unused JavaScript (High)**
+
+*   **Problem:** Significant amounts of JavaScript are being loaded but not used, especially on mobile.
+*   **Specific Improvements:**
+    *   **Theme Audit:** Identify and remove any unnecessary JS files included in the theme. Consult with the theme developer if needed.
+    *   **Code Splitting:** If possible, implement code splitting within the theme to only load necessary JS for each page. Check the current theme's JS structure and look for code splitting opportunities.
+    *   **Defer Loading:** Defer the loading of non-critical scripts using the `defer` or `async` attributes. BigCommerce theme settings might provide options for this, or manual theme edits might be required.
+*   **Rationale:** Reduces TBT and improves First Input Delay (FID), contributing to better user interaction. Also, removes unnecessary code, which leads to lower loading times.
+
+### 3.  Reduce Unused CSS (High)**
+
+*   **Problem:** A large portion of CSS is not used on the page.
+*   **Specific Improvements:**
+    *   **Theme Optimization:** Review the theme's CSS files and remove any unused styles. Consider using a CSS coverage tool in Chrome DevTools to identify unused CSS.
+    *   **Critical CSS:** Extract and inline the CSS necessary for above-the-fold content. Defer loading the remaining CSS. This may require theme customization.
+*   **Rationale:** Reduces page size, improves rendering speed and contributes to the overall increase of the performance score.
+
+### 4.  Address Redirects (Medium)**
+
+*   **Problem:** A redirect is adding unnecessary loading time.
+*   **Specific Improvements:**
+    *   **Directly Access Pages:** Ensure that internal links directly point to the final URL, eliminating the redirect.
+*   **Rationale:** Improves page load time and reduces server load.
+
+### 5.  Optimize Server Response Time (Medium)**
+
+*   **Problem:** Initial server response time (TTFB) is relatively high.
+*   **Specific Improvements:**
+    *   **Content Delivery Network (CDN):** Ensure a CDN is properly configured to cache content and serve it from geographically closer locations. This is especially critical for images and static assets.
+    *   **Hosting Review:** Consider upgrading your hosting plan if server resources are consistently taxed.
+*   **Rationale:** Improving TTFB enhances the overall responsiveness of the website and lays a foundation for faster loading of other resources.
+
+### 6.  Eliminate Render-Blocking Resources (Medium)**
+
+*   **Problem:** Render-blocking JavaScript is delaying the initial rendering of the page.
+*   **Specific Improvements:**
+    *   **Defer Loading:** Move the identified script (`https://microapps.bigcommerce.com/bodl-events/1.9.4/index.js`) to the end of the `<body>` tag or use the `defer` attribute to prevent it from blocking rendering.
+    *   **Review App Usage:** Evaluate the necessity of the script. If it's not critical, consider removing it or finding a more performant alternative.
+*   **Rationale:** Unblocking the render path improves FCP, leading to a faster perceived loading experience.
+
+### 7.  Serve images compressed (Low)**
+
+*   **Problem:** Images are not efficiently encoded.
+*   **Specific Improvements:**
+    *   **Optimize images:** Use a service like TinyPNG, ShortPixel or similar to compress images.
+*   **Rationale:** Improves page size and reduces bandwidth consumption.
+
+### 8.  Modern Javascript (Low)**
+
+*   **Problem:** Legacy Javascript is being served to modern browsers.
+*   **Specific Improvements:**
+    *   **Check theme settings:** Review the theme's Javascript build process and target modern browsers
+    *   **Update the app:** Update to the latest version of the app or replace it with a better performing one.
+*   **Rationale:** Lowers javascript payload and improves loading times.
+
+**General Notes for BigCommerce Development:**
+
+*   **Theme Selection:** Choose a BigCommerce theme that is known for its performance and optimization.
+*   **App Evaluation:** Carefully evaluate the performance impact of any installed BigCommerce apps. Test performance before and after installation. Remove unused or poorly performing apps.
+*   **CDN Configuration:** Ensure your CDN is properly configured to cache static assets, including images, CSS, and JavaScript files.
+*   **Regular Audits:** Conduct regular performance audits using PageSpeed Insights or other tools to identify and address any emerging performance bottlenecks.

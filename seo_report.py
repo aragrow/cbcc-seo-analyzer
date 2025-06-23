@@ -3,6 +3,7 @@ import json
 import os
 import datetime
 import re
+from report_to_gdoc import txt_to_doc
 
 def generate_txt_file_report(report, client_name, url):
     try:
@@ -22,14 +23,17 @@ def generate_txt_file_report(report, client_name, url):
         raise ValueError(f"Unable to generate {filepath}") from e
 
 def generate_seo_report(data, client_name, url):
-    try:
-        print("generating SEO Report")
-        debug = ""
+  
+    print("generating SEO Report")
+    debug = ""
 
-        with open(f"prompts/{client_name}__pagespeed-audit-prompt.md", "r") as f:
-            custom_prompt = f.read()
+    with open(f"prompts/{client_name}__pagespeed-audit-prompt.md", "r") as f:
+        custom_prompt = f.read()
 
-        prompt = f"""
+    if not custom_prompt:
+        raise ValueError(f"Prompt file for client '{client_name}' is empty or missing.")
+
+    prompt = f"""
     You are a technical SEO expert with experience in interpreting Google PageSpeed Insights data.
 
     Given an array of audit results from the PageSpeed API (mobile and desktop), analyze and summarize the key metrics as if it were a Lighthouse report. Provide a clear breakdown of:
@@ -57,18 +61,23 @@ def generate_seo_report(data, client_name, url):
 
     {json.dumps(data, indent=2)}
     """
-        
-        report = generate_lighthouse_style_report(prompt)
-
-        if not report:
-            raise ValueError(f"Report generation failed: {debug}")
-        
-        file = generate_txt_file_report(report, client_name, url)
-
-        if not file:
-            raise ValueError(f"File generation failed: {debug}") 
-        
-        return file
-    
+    try:
+        report = generate_lighthouse_style_report(prompt)   
     except Exception as e:
-        raise ValueError(f"Unable to generate SEO Report") from e
+        print(e)
+        raise ValueError(f"LightHouse - Unable to gather analitics")
+    
+    try:
+        file = generate_txt_file_report(report, client_name, url)
+    except Exception as e:
+        print(e)
+        raise ValueError(f"Text - Unable to create Text file")
+
+    try:
+        gdoc = txt_to_doc(file, client_name)
+    except Exception as e:
+        print(e)
+        raise ValueError(f"GDoc - Unable to create Google Doc")
+
+    return gdoc
+    

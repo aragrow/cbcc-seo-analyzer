@@ -1,0 +1,133 @@
+# Webeyecare.com Performance Audit - Precision1 for Astigmatism 90 Pack
+
+This report summarizes the performance audit results for the specified product page. It highlights opportunities for improvement to enhance user experience and SEO.
+
+## Mobile Report
+
+*URL: https://webeyecare.com/precision1-for-astigmatism-90-pack*
+
+### Metrics
+
+*   **Performance:** 65
+*   **Accessibility:** 93
+*   **Best Practices:** 68
+*   **SEO:** 83
+*   **First Contentful Paint (FCP):** 2.8 s
+*   **Largest Contentful Paint (LCP):** 3.8 s
+*   **Total Blocking Time (TBT):** 510 ms
+*   **Cumulative Layout Shift (CLS):** 0.105
+*   **Speed Index:** 5.0 s
+
+### Opportunities
+
+The following opportunities can improve the page's performance on mobile devices:
+
+*   **Reduce Unused CSS:** Estimated savings of 81 KiB. The file `https://cdn11.bigcommerce.com/s-fu16hs0usz/stencil/7b62a2b0-2d7a-013e-c06f-42bd4fea94e2/e/41456a00-1886-013e-78b9-42ad74ea4ca6/css/__wecproduct_uncritical.css?vs` has significant unused CSS rules (86%).
+*   **Serve Images in Next-Gen Formats:** Estimated savings of 72 KiB. Convert product images, especially the LCP image, to WebP or AVIF format.
+*   **Avoid Multiple Page Redirects:** Estimated savings of 770 ms. Removing the trailing slash redirect on the URL improves load time.
+*   **Avoid Serving Legacy JavaScript to Modern Browsers:** Estimated savings of 20 KiB.  Some JS libraries include code for older browsers.
+*   **Reduce Initial Server Response Time:** The root document took 700 ms to respond.
+*   **Properly Size Images:** Estimated savings of 77 KiB.  The product image is larger than the rendered size.
+*   **Efficiently Encode Images:** Estimated savings of 20 KiB.  Optimize compression of the product image.
+*   **Reduce Unused JavaScript:** Estimated savings of 256 KiB. Several JavaScript files, especially theme bundles and third-party scripts, contain significant unused code.
+
+## Desktop Report
+
+*URL: https://webeyecare.com/precision1-for-astigmatism-90-pack*
+
+### Metrics
+
+*   **Performance:** 88
+*   **Accessibility:** 91
+*   **Best Practices:** 70
+*   **SEO:** 83
+*   **First Contentful Paint (FCP):** 0.7 s
+*   **Largest Contentful Paint (LCP):** 1.0 s
+*   **Total Blocking Time (TBT):** 230 ms
+*   **Cumulative Layout Shift (CLS):** 0.024
+*   **Speed Index:** 1.6 s
+
+### Opportunities
+
+The following opportunities can improve the page's performance on desktop devices:
+
+*   **Serve Images in Next-Gen Formats:** Estimated savings of 192 KiB. Convert product images to WebP or AVIF format.
+*   **Properly Size Images:** Estimated savings of 277 KiB.  The product image is significantly larger than the rendered size.
+*   **Efficiently Encode Images:** Estimated savings of 46 KiB.  Optimize compression of the product image.
+*   **Reduce Unused CSS:** Estimated savings of 76 KiB.  The file `https://cdn11.bigcommerce.com/s-fu16hs0usz/stencil/7b62a2b0-2d7a-013e-c06f-42bd4fea94e2/e/41456a00-1886-013e-78b9-42ad74ea4ca6/css/__wecproduct_uncritical.css?vs` has significant unused CSS rules (81%).
+*   **Reduce Unused JavaScript:** Estimated savings of 263 KiB.  Several JavaScript files, especially theme bundles and third-party scripts, contain significant unused code.
+*   **Avoid Serving Legacy JavaScript to Modern Browsers:** Estimated savings of 20 KiB.  Some JS libraries include code for older browsers.
+*   **Reduce Initial Server Response Time:** The root document took 620 ms to respond.
+*   **Avoid Multiple Page Redirects:** Estimated savings of 240 ms. Removing the trailing slash redirect on the URL improves load time.
+*   **Defer Offscreen Images:** Estimated savings of 3 KB by lazy loading the Sezzle payment method icon.
+
+## Recommendations
+
+Based on the audit results, I recommend focusing on the following areas for improvement:
+
+### Problem Areas
+
+1.  **Image Optimization:**  The product image is a major bottleneck in both mobile and desktop performance. It's too large, uses an inefficient format, and isn't optimally compressed.
+2.  **Unused CSS and JavaScript:** A significant amount of CSS and JavaScript code is loaded but not used, increasing page weight and parse time.
+3.  **Server Response Time:**  Initial server response time is relatively high.
+4.  **Redirects:** The trailing slash redirect adds unnecessary latency.
+
+### Specific Improvements and BigCommerce Considerations
+
+* **Images**
+
+    *   **Recommendation:** Implement a CDN that supports WebP/AVIF image format conversion.  BigCommerce itself doesn't natively support these formats, so a CDN like Cloudflare, Akamai or similar with automatic image optimization becomes essential.
+    *   **Implementation:**
+        *   Choose a CDN with image optimization capabilities.
+        *   Configure the CDN to automatically convert images to WebP/AVIF based on browser support.
+        *   Ensure the CDN is properly integrated with the BigCommerce store.
+    *   **Recommendation:** Properly size the product images.
+    *   **Implementation:**
+        *   Audit product image sizes and ensure they are appropriate for the display area on both mobile and desktop.
+        *   Use the BigCommerce image manager to resize/re-optimize the existing product image.
+        *   Use lazy loading for offscreen images. This should be a theme-level setting or applied by third-party scripts.
+
+* **CSS**
+    *   **Recommendation:**  Analyze the CSS for unused rules and remove them. Consider using a CSS optimization tool (likely a third-party app or custom script) to automatically identify and remove unused CSS.
+    *   **Implementation:**
+        *   Use a CSS coverage tool (like the one in Chrome DevTools) to identify unused CSS rules.
+        *   Modify the theme's CSS to remove unused rules. Be cautious and test thoroughly.
+        *   Consider using an app to manage critical CSS for above-the-fold content, while deferring the loading of less critical CSS
+
+* **JavaScript**
+    *   **Recommendation:** Address unused JavaScript.
+    *   **Implementation:**
+        *   Audit third-party apps and their scripts for their impact on performance. Uninstall any unnecessary apps or scripts.
+        *   Implement code splitting within your theme to load JavaScript only when needed. This will likely require theme customization.
+        *   Consider lazy-loading certain JavaScript components or using asynchronous loading where possible.
+        *   Review Searchanise widgets and theme-bundle chunks for excessive code. Explore if lazy loading, smaller alternative features, or direct Searchanise support can reduce JS footprint.
+
+* **Server Response Time**
+    *   **Recommendation:**  Investigate server-side performance.  Contact BigCommerce support to see if there are any known platform issues. Consider upgrading your BigCommerce plan for increased resources if necessary.
+    *   **Implementation:**
+        *   Use monitoring tools to track server response time and identify bottlenecks.
+        *   Optimize database queries and caching strategies if possible.
+        *   Review your BigCommerce plan and consider upgrading if you need more resources.
+        *   Implement browser caching using the BigCommerce admin panel.
+
+* **Redirects**
+    *   **Recommendation:**  Fix the trailing slash redirect.
+    *   **Implementation:**
+        *   In the BigCommerce admin, go to Store Setup -> Design -> Edit Theme Files -> assets -> js -> theme.js and find a line with `window.location.href = url + '/';` Remove the `/`
+
+* **General recommendations**
+    *   **Recommendation:** Implement Text Compression.
+    *    **Implementation:**
+        *   In the BigCommerce admin panel, go to "Store Setup" > "Store Settings" > "Miscellaneous".
+        *   Enable Gzip or Brotli compression. (Note: available compression options depend on your BigCommerce plan).
+        *   If these options aren't available, consider a CDN or third-party app that provides compression.
+
+### Prioritization
+
+1.  **Image Optimization (High):**  This has the biggest potential impact on LCP and overall perceived performance, especially on mobile.
+2.  **Reduce Unused CSS and JavaScript (High):**  Decreasing the amount of code that needs to be downloaded and parsed will improve FCP and TBT.
+3.  **Avoid Multiple Page Redirects (Medium):**  A quick win to reduce latency.
+4.  **Reduce Initial Server Response Time (Medium):** Addressing the root cause of slow server response will benefit all pages on the site.
+5.  **Address Legacy Javascript (Low):** Least likely to have the desired effect on a limited budget.
+
+By implementing these recommendations, Webeyecare can significantly improve its website's performance, user experience, and SEO rankings.

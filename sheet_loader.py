@@ -19,11 +19,16 @@ from check_inpage_urls import check_inpage_urls
 from pagespeed import analyze_both
 from seo_report import generate_seo_report
 
+from dotenv import load_dotenv
+import os
+
+load_dotenv()  # Load variables from .env
+
 # Templates
 templates = Jinja2Templates(directory="templates")
 
 # Define the scopes and credentials path
-SCOPES_READONLY = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
+
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
 SERVICE_ACCOUNT_FILE = "credentials/google_service_account.json"
@@ -59,13 +64,12 @@ def get_urls(sheet_id: str) -> dict:
             debug += f"Error opening spreadsheet: {traceback.format_exc()}\n"
             raise
             
-        print("Spreadsheet '{spreadsheet.title}' loaded successfully.\n")
+        print(f"Spreadsheet '{spreadsheet.title}' loaded successfully.\n")
 
         # Loop through all tabs/worksheets
         for worksheet in spreadsheet.worksheets():
             title = worksheet.title
             if title != "Site Speed & Asset Optimization":
-                debug += f"Skipping tab: {title}\n"
                 continue
             # End if
 
@@ -244,7 +248,7 @@ def load_site_speed_asset_optimization(worksheet, urls_to_analyze, client_name) 
                         "Accessibility (before)_D": before_desktop.get('accessibility', None),
                         "Best Practices (before)_D": before_desktop.get('best_practices', None),
                         "SEO (before)_D": before_desktop.get('seo', None),
-                        "Recomendations": "See opportunities in PageSpeed report",
+                        "Recomendations": report,
                         "Completed": True
                     }
 
@@ -262,7 +266,7 @@ def load_site_speed_asset_optimization(worksheet, urls_to_analyze, client_name) 
 
                     record = {
                         "Date Reviewed": today,
-                        "Core Web Vital Assestment (after)": after_mobile.get('perpass_fail_statusformance', None),
+                        "Core Web Vital Assestment (after)": after_mobile.get('pass_fail_status', None),
                         "Performance (after)": after_mobile.get('performance', None),
                         "Accessibility (after)": after_mobile.get('accessibility', None),
                         "Best Practices (after)": after_mobile.get('best_practices', None),
@@ -281,7 +285,7 @@ def load_site_speed_asset_optimization(worksheet, urls_to_analyze, client_name) 
                     # Clear existing data
                     worksheet.batch_clear([f"N{row_no}:Y{row_no}"])
 
-                    set_with_dataframe(worksheet, df, row=row_no, col=15, include_column_header=False)
+                    set_with_dataframe(worksheet, df, row=row_no, col=14, include_column_header=False)
 
             apply_asset_optimization_formatting(worksheet)
 
