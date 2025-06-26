@@ -1,20 +1,22 @@
-from google_studio_ai import generate_report
 import json
 import os
 import datetime
 import re
-from report_to_gdoc import txt_to_doc
+import gspread
+from google.oauth2.service_account import Credentials
+from googleapiclient.discovery import build
 
-def generate_txt_file_report(report, client_name, url):
+from google_studio_ai import generate_report
+
+def generate_txt_file_report(report, client_name):
     try:
-        print("generating Text File with SEO Report")
+        print("generating Text File with Canonical Data")
         report_dir = "report"
         os.makedirs(report_dir, exist_ok=True)
         now = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         # Sanitize client_name and url to be valid filenames
         safe_client_name = re.sub(r'[^A-Za-z0-9_\-]', '_', client_name)
-        safe_url = re.sub(r'[^A-Za-z0-9_\-]', '_', url)
-        filename = f"{safe_client_name}_{safe_url}_{now}.txt"
+        filename = f"{safe_client_name}_Canonical_Report_{now}.txt"
         filepath = os.path.join(report_dir, filename)
         with open(filepath, "w") as f:
             f.write(report)
@@ -22,12 +24,12 @@ def generate_txt_file_report(report, client_name, url):
     except Exception as e:
         raise ValueError(f"Unable to generate {filepath}") from e
 
-def generate_seo_report(data, client_name, url):
+def generate_canonical_tag_report(urls, canonicals, client_name):
   
-    print("generating SEO Report")
+    print("generating Canonical Tag Report")
     debug = ""
 
-    with open(f"prompts/{client_name}__pagespeed-audit-prompt.md", "r") as f:
+    with open(f"prompts/holistic_strategy_checks_to_canonical_tagging.md", "r") as f:
         custom_prompt = f.read()
 
     if not custom_prompt:
@@ -40,38 +42,34 @@ def generate_seo_report(data, client_name, url):
         example_report = ''
     
     prompt = f"""
-    You are a technical SEO expert with experience in interpreting Google PageSpeed Insights data.
+    You are a technical SEO expert with experience in interpreting the result from crawling all the urls and providing canonical taging.
 
-    Given an array of audit results from the PageSpeed API (mobile and desktop), analyze and summarize the key metrics as if it were a Lighthouse report. Provide a clear breakdown of:
+    Make the report specific for the client {client_name}
 
-    - Performance
-    - Accessibility
-    - Best Practices
-    - SEO
+    Given an array of audit results from crawling, analyze and summarize the key metrics based on the check requested.
 
     {custom_prompt}
 
     ## Format
     ---------------------------
     The results into a well-structured, human-readable report.
-    The report should be divided in two sections the Mobile and the Desktop Report.
-    The report should be in markup to copy to a google doc.
 
     At the end, include a **recommendations** section that:
     - Identifies problem areas
     - Suggests specific improvements
     - Prioritizes fixes based on potential SEO or UX impact
     
-    ## Example of Report:
-    ---------------------
-    {example_report}
-    
     ## Input:
     --------
-    Below is the raw PageSpeed Insights API output, structured as JSON. Analyze and use it to populate the fields above.
+    Below is the raw array of the , structured as JSON. Analyze and use it to create the report.
 
-    {json.dumps(data, indent=2)}
+    #### urls with their canonicals:
+    {json.dumps(urls, indent=2)}
+
+    #### canonicals url:
+    {json.dumps(canonicals, indent=2)}
     """
+
     try:
         report = generate_report(prompt)   
     except Exception as e:
@@ -79,7 +77,7 @@ def generate_seo_report(data, client_name, url):
         raise ValueError(f"LightHouse - Unable to gather analitics")
     
     try:
-        file = generate_txt_file_report(report, client_name, url)
+        file = generate_txt_file_report(report, client_name)
     except Exception as e:
         print(e)
         raise ValueError(f"Text - Unable to create Text file")

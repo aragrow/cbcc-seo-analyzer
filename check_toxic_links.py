@@ -2,7 +2,7 @@ import requests
 import os
 import json
 from dotenv import load_dotenv
-
+import sys
 
 load_dotenv()  # Load variables from .env
 
@@ -29,6 +29,7 @@ PLATFORM_TYPES = ["ANY_PLATFORM"]
 THREAT_ENTRY_TYPES = ["URL"]
 
 def check_toxic_link_gsb(url: str) -> tuple[bool, str | None]:
+    print('Checking Toxic Link')
     """
     Checks a single URL against the Google Safe Browsing API.
 
@@ -41,6 +42,10 @@ def check_toxic_link_gsb(url: str) -> tuple[bool, str | None]:
                threat_type is a string indicating the type of threat (e.g., 'MALWARE', 'PHISHING')
                            or None if no threat was found, or an error message string.
     """
+    if not url:
+        print("URL Missing")
+        return False, "URL Missing."
+
     # Add a basic check for scheme if missing (GSB often expects it)
     if not url.startswith(('http://', 'https://')):
         print("Warning: URL does not start with http:// or https://.")
@@ -64,6 +69,12 @@ def check_toxic_link_gsb(url: str) -> tuple[bool, str | None]:
     params = {"key": GOOGLE_API_KEY}
 
     try:
+
+        print(f"Attempting POST to {API_URL} with key and payload...")
+        print("--- Payload being sent ---")
+        print(json.dumps(payload, indent=4)) # Pretty print the payload
+        print("--------------------------")
+
         # Send the POST request to the Safe Browsing API
         response = requests.post(API_URL, params=params, json=payload)
 
@@ -85,6 +96,7 @@ def check_toxic_link_gsb(url: str) -> tuple[bool, str | None]:
     except requests.exceptions.RequestException as e:
         # Handle network errors, connection issues, or API errors
         print(f"API Request Error: {e}")
+        sys.exit(1)
         # Check if it's likely an invalid API key error (often 400 or 403)
         if response is not None and (response.status_code == 400 or response.status_code == 403):
             return False, f"Possible API Key error or invalid request ({response.status_code})"

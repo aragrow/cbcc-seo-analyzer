@@ -10,6 +10,9 @@ from check_toxic_links import (
 
 def check_inpage_urls(page_url):
     results = []
+    global global_checked_url
+    checked_url = global_checked_url
+    
     debug = ''
     print ('### Checking in-page URLs for:', page_url)
 
@@ -44,7 +47,7 @@ def check_inpage_urls(page_url):
             x = 0
             for element in soup.find_all(tag):
                 x += 1
-                if x > 100:
+                if x > 5:
                     print(f"Reached limit of 100 URLs for tag: {tag}")
                     break
               
@@ -61,8 +64,13 @@ def check_inpage_urls(page_url):
                     continue
                 seen.add(abs_url)
 
+                if abs_url in checked_url: continue # Prevents from checking duplicates
+                
+                checked_url.append(abs_url)
+                print(f"Checked URLs so far: {len(checked_url)}")
                 # Check URL status
                 try:
+
                     print(f"-- Checking URL: {abs_url} ")
                     r = requests.head(abs_url, allow_redirects=True, timeout=5)
                     if r.status_code != 200:
@@ -77,7 +85,7 @@ def check_inpage_urls(page_url):
                 except Exception as e:
                     print(f"Error Checking Link Status: {e}")
                     return False
-
+                """
                 try:
                     
                     abs_parts = urlparse(abs_url)
@@ -93,13 +101,13 @@ def check_inpage_urls(page_url):
                                 "in_page_url": abs_url,
                                 "status_code": "Toxic",
                                 "tag": tag,
-                                "notes": {threat_info}
+                                "notes": threat_info
                             })
 
                 except Exception as e:
                     print(f"Error Checking Link Toxicity: {e}")
                     return False
-
+                """
             # End For   
         # End For
         return results

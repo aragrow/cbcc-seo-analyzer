@@ -16,8 +16,10 @@ from fastapi.templating import Jinja2Templates
 from datetime import datetime
 
 from check_inpage_urls import check_inpage_urls
+from internal_linking_checking import analyze_page_internal_links
 from pagespeed import analyze_both
 from seo_report import generate_seo_report
+from check_canonical_tags import check_canonical_tags
 
 from dotenv import load_dotenv
 import os
@@ -27,6 +29,9 @@ load_dotenv()  # Load variables from .env
 # Templates
 templates = Jinja2Templates(directory="templates")
 
+
+global global_checked_url
+global_check_url = []
 # Define the scopes and credentials path
 
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
@@ -149,7 +154,19 @@ def load_sheet(sheet_id: str, urls_to_analyze = [], client_name = '') -> dict:
 
             if title == "Bad Links":
                 print("Exec: load_bad_link()")
-                result = load_bad_links(worksheet, urls_to_analyze)
+                #result = load_bad_links(worksheet, urls_to_analyze)
+                #debug += result.get("debug", "")
+            # End if
+
+            if title == "Internal Linking Improvements":
+                print("Exec: analyze_page_internal_links()")
+                #result = analyze_page_internal_links(worksheet, urls_to_analyze)
+                #debug += result.get("debug", "")
+            # End if
+
+            if title == "Crawl & Indexing Optimization":
+                print("Exec: check_canonical_tags()")
+                result = check_canonical_tags()
                 debug += result.get("debug", "")
             # End if
 
@@ -341,7 +358,7 @@ def load_bad_links(worksheet, urls_to_analyze) -> dict:
                 else:
                     url = base_url + '/' + item['url']
                 
-                #print(f"Checking URL: {url}")           
+                #print(f"Checking URL: {url}")          
                 result = check_inpage_urls(url)
 
                 results.append(result)
@@ -353,23 +370,29 @@ def load_bad_links(worksheet, urls_to_analyze) -> dict:
         # print(results)
         try:
             
+            print('Flatten the nested list')
             # Flatten the nested list
             flat_data = [item for sublist in results for item in sublist]
 
+            print('Convert to DataFrame')
             # Convert to DataFrame
             #df = pd.DataFrame(urls, columns=["Page URL"])
             headers = ["page_url", "audit_date", "in_page_url", "status_code", "tag", "Notes"]
             df = pd.DataFrame(flat_data, columns=headers)
 
+            print('Clear existing data')
             # Clear existing data
             worksheet.clear()
 
+            print('Set With Dataframe')
             set_with_dataframe(worksheet, df, row=1, col=1, include_column_header=True)
 
+            print('Apply Formatting')
             apply_bad_links_formatting(worksheet)
                     
         except Exception as e:
             print("Error writing to Google Sheet:", e)
+            raise
         # Write the DataFrame to the worksheet
         
 

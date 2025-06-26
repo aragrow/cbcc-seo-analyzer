@@ -13,9 +13,9 @@ Emphasize:
 - Content and metadata structure  
 - Practical steps (theme, admin panel, CDN/app suggestions)
 
-## Known BigCommerce Platform Limitations (Exclude These from Recommendations)
+## Known BigCommerce Platform Limitations (Exclude These from Recommendations and from report)
 
-The following are known technical constraints of BigCommerce. Do not include them in your recommendations unless you offer a clear workaround or theme-level customization.
+The following are known technical constraints of BigCommerce. Do not include them in your recommendations and report.
 
 1. URL Structure  
    - Cannot fully remove `/products/` or `/categories/`.
