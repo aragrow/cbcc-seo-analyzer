@@ -6,7 +6,8 @@ import os
 import gspread
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
-
+import datetime
+import json
 from canonical_tag_report import generate_canonical_tag_report
 
 MAIN_SITEMAP = os.getenv("MAIN_SITEMAP")
@@ -79,10 +80,12 @@ def categorize_urls(sitemap_urls):
         print(f"Processing: {sitemap_url}")
         category = categorize_sitemap(sitemap_url)
         page_urls = parse_sitemap(sitemap_url)
-        print(f"page_urls: {page_urls}")
+        #print(f"page_urls: {page_urls}")
         categorized_urls[category].extend(page_urls)
+ 
+    total_records = sum(len(value) for value in categorized_urls.values())
+    print(f"categorize_url: {total_records}")
 
-    print(f"categorize_url: {len(categorized_urls)}")
     return categorized_urls
 
 def get_canonical_tags(categorized_urls):
@@ -96,20 +99,27 @@ def get_canonical_tags(categorized_urls):
         if category != 'products': continue
         print(f"Processing Category: {category}")
         i = 0
+        x = 0
+        y = x + 2000
         for url in urls:
+            if i < x:
+                i = i + 1
+                continue
+            if urls.index(url) % 100 == 0:
+                print(f"Processed {urls.index(url)} URLs in category '{category}'")
             result = get_canonical(url)
-            print(result)
+            #print(result)
             canonical_data[category].append({"url": url, "url_status_code": result['status_code'], "canonical_url": result['href']})
             i = i + 1
-            if i>10: break
+            if i>=y: break
     print(f"Canonical Data: \n {canonical_data}")
     return canonical_data
 
 def get_canonical(url):
-    print(f"Retrieve canonical link from a webpage: {url}")
+    #print(f"Retrieve canonical link from a webpage: {url}")
     try:
         headers = {"User-Agent": "Mozilla/5.0"}
-        response = requests.get(url, headers=headers, timeout=10)
+        response = requests.get(url, headers=headers, timeout=20)
         soup = BeautifulSoup(response.text, 'html.parser')
         status_code = response.status_code
         canonical = soup.find('link', rel='canonical')
@@ -127,31 +137,43 @@ def get_canonical_info(categorized_urls_and_canonicals_tags):
             canonical_url = item.get("canonical_url")
             if canonical_url:
                 unique_canonicals.add(canonical_url)
-    print(f"Unique canonical URLs: {unique_canonicals}")
+    
+    print(f"Unique canonical URLs: {len(unique_canonicals)}")
 
-    for canonical_url in unique_canonicals:
-        found = False
-        for category, items in categorized_urls_and_canonicals_tags.items():
-            print(f'Processing Canonical url: {items}')
-            for item in items:
-                if item.get("url") == canonical_url:
-                    canonical_url.append({"canonical_url": canonical_url, "status": item.get("url_status_code")})
-                    found = True
-                    break
-            if found:
-                break
-            # If not found, fetch status directly
-            try:
-                headers = {"User-Agent": "Mozilla/5.0"}
-                response = requests.get(canonical_url, headers=headers, timeout=10)
-                item.append({"status": response.status_code})
-            except Exception as e:
-                item.append({"status": None})
+    return unique_canonicals
 
-    print(f"Unique canonical URLs and status: {unique_canonicals}")
+def save_to_file(categorized_urls_and_canonicals_tags, canonical_tags):
+    
+    try:
+        print("Dump to File")
 
-    return list(unique_canonicals)
+        # Ensure the data directory exists
+        data_dir = os.path.join(os.path.dirname(__file__), "data")
+        os.makedirs(data_dir, exist_ok=True)
 
+        # Prepare data to save
+        data = {
+            "categorized_urls_and_canonicals_tags": categorized_urls_and_canonicals_tags,
+            "canonical_tags": list(canonical_tags)
+        }
+
+        # Correct way: module.class.method()
+        current_time = datetime.datetime.now()
+        # Create filename with timestamp
+        timestamp = current_time.strftime("%Y%m%d_%H%M%S")
+        filename = f"canonical_tags_{timestamp}.json"
+        filepath = os.path.join(data_dir, filename)
+
+        # Save to JSON file
+        with open(filepath, "w") as f:
+            json.dump(data, f, indent=2)
+
+        print(f"Saved canonical tag data to {filepath}")
+        return filepath
+    except Exception as e:
+        print(f"Error Dumping {e}")
+        return None
+    
 def check_canonical_tags():
     print("Check canonical tags")
   
@@ -170,7 +192,7 @@ def check_canonical_tags():
     
     canonical_tags = get_canonical_info(categorized_urls_and_canonicals_tags)
 
-    print(categorized_urls_and_canonicals_tags)
+    file = save_to_file(categorized_urls_and_canonicals_tags, canonical_tags)
 
     report = generate_canonical_tag_report(categorized_urls_and_canonicals_tags, canonical_tags, 'webeyecare')
 
